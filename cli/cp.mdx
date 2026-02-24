@@ -1,0 +1,87 @@
+---
+title: ollama cp
+description: Copy a model to create a new model name or backup
+---
+
+Copy an existing model to a new name. This is useful for creating backups, renaming models, or creating variants.
+
+## Syntax
+
+```bash
+ollama cp SOURCE DESTINATION
+```
+
+## Arguments
+
+<ParamField path="SOURCE" type="string" required>
+  The name of the source model to copy
+</ParamField>
+
+<ParamField path="DESTINATION" type="string" required>
+  The name for the copied model
+</ParamField>
+
+## Examples
+
+### Copy a model
+
+```bash
+ollama cp gemma3 my-gemma3
+```
+
+This creates a new model named `my-gemma3` that is an exact copy of `gemma3`.
+
+### Create a backup before customization
+
+```bash
+ollama cp gemma3 gemma3-backup
+ollama create gemma3 -f Modelfile
+```
+
+### Rename a model
+
+```bash
+ollama cp old-name new-name
+ollama rm old-name
+```
+
+## How it works
+
+The `cp` command creates a new model by copying all the layers and configuration from the source model. This operation:
+
+- Copies model manifests and configuration
+- References the same blob files (no duplication of model weights)
+- Creates an independent model that can be modified or deleted separately
+- Is fast because it doesn't duplicate large model files
+
+## Exit codes
+
+- `0` - Model copied successfully
+- `1` - Copy failed (source model not found, destination already exists, or server error)
+
+## Notes
+
+<Note>
+The copy operation uses references to the same underlying blobs, so it doesn't duplicate storage space for the model weights.
+</Note>
+
+<Warning>
+If the destination model name already exists, the command will fail. Remove the existing model first with `ollama rm` if you want to replace it.
+</Warning>
+
+## Related commands
+
+<CardGroup cols={2}>
+  <Card title="ollama create" href="/cli/create">
+    Create custom models
+  </Card>
+  <Card title="ollama rm" href="/cli/rm">
+    Remove models
+  </Card>
+  <Card title="ollama list" href="/cli/list">
+    List all models
+  </Card>
+  <Card title="ollama show" href="/cli/show">
+    Show model information
+  </Card>
+</CardGroup>

@@ -1,0 +1,121 @@
+---
+title: ollama signin
+description: Sign in to ollama.com to access cloud models and push models
+---
+
+Authenticate with ollama.com to access cloud models, push your own models, or use the Ollama cloud service.
+
+## Syntax
+
+```bash
+ollama signin
+```
+
+## How it works
+
+The `signin` command initiates an authentication flow:
+
+1. Generates a secure connection request
+2. Opens your default browser to the Ollama sign-in page
+3. Prompts you to authorize the connection
+4. Stores authentication credentials locally
+
+<Steps>
+  <Step title="Run the signin command">
+    ```bash
+    ollama signin
+    ```
+  </Step>
+  
+  <Step title="Authorize in browser">
+    Your browser will open to `https://ollama.com/connect`. Click "Authorize" to complete the sign-in process.
+  </Step>
+  
+  <Step title="Confirmation">
+    Once authorized, you'll see a confirmation message in your terminal.
+  </Step>
+</Steps>
+
+## What signing in enables
+
+<CardGroup cols={2}>
+  <Card title="Cloud models" icon="cloud">
+    Access larger, more powerful models hosted on Ollama's infrastructure
+  </Card>
+  <Card title="Push models" icon="upload">
+    Share your custom models with the community at ollama.com
+  </Card>
+  <Card title="Private models" icon="lock">
+    Access your private models across devices
+  </Card>
+  <Card title="Model library" icon="books">
+    Browse and pull from the full model library
+  </Card>
+</CardGroup>
+
+## Examples
+
+### Sign in to access cloud models
+
+```bash
+ollama signin
+```
+
+After signing in, you can run cloud models:
+
+```bash
+ollama run deepseek-r1:671b
+```
+
+### Sign in to push a model
+
+```bash
+ollama signin
+ollama push myusername/my-model
+```
+
+## Authentication storage
+
+Credentials are stored securely in:
+
+- **macOS**: Keychain
+- **Linux**: `~/.ollama/`
+- **Windows**: Credential Manager
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Browser doesn't open automatically">
+    If your browser doesn't open automatically, copy the URL from the terminal and paste it into your browser manually.
+  </Accordion>
+  
+  <Accordion title="Already signed in">
+    If you're already signed in, the command will confirm your current authentication status. Use `ollama signout` first if you need to sign in with a different account.
+  </Accordion>
+  
+  <Accordion title="Connection timeout">
+    If the connection times out, check your internet connection and try again. The signin link expires after a few minutes.
+  </Accordion>
+</AccordionGroup>
+
+## Exit codes
+
+- `0` - Successfully signed in
+- `1` - Sign-in failed (network error, user declined, or timeout)
+
+## Related commands
+
+<CardGroup cols={2}>
+  <Card title="ollama signout" href="/cli/signout">
+    Sign out from ollama.com
+  </Card>
+  <Card title="ollama push" href="/cli/push">
+    Push models to ollama.com
+  </Card>
+  <Card title="ollama pull" href="/cli/pull">
+    Pull models from ollama.com
+  </Card>
+  <Card title="Ollama Cloud" href="/platforms/cloud">
+    Learn about cloud models
+  </Card>
+</CardGroup>

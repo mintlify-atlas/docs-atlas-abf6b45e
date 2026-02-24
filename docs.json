@@ -109,8 +109,11 @@
               "cli/show",
               "cli/list",
               "cli/ps",
-              "cli/stop",
+              "cli/cp",
               "cli/rm",
+              "cli/stop",
+              "cli/signin",
+              "cli/signout",
               "cli/launch"
             ]
           }

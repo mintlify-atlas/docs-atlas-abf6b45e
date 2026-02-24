@@ -1,0 +1,121 @@
+---
+title: ollama signout
+description: Sign out from ollama.com and revoke authentication
+---
+
+Sign out from your ollama.com account and revoke local authentication credentials.
+
+## Syntax
+
+```bash
+ollama signout
+```
+
+## How it works
+
+The `signout` command:
+
+1. Revokes the authentication token on ollama.com
+2. Removes locally stored credentials
+3. Prevents access to cloud models until you sign in again
+
+## What happens after signing out
+
+After signing out:
+
+- ❌ You cannot access cloud models (e.g., `deepseek-r1:671b`)
+- ❌ You cannot push models to ollama.com
+- ✅ You can still use locally available models
+- ✅ You can still pull public models from the library
+
+## Examples
+
+### Sign out from current account
+
+```bash
+ollama signout
+```
+
+Output:
+```
+Signed out from ollama.com
+```
+
+### Sign out and sign in with different account
+
+```bash
+ollama signout
+ollama signin
+```
+
+This is useful if you want to switch between multiple Ollama accounts.
+
+## Authentication removal
+
+Credentials are removed from:
+
+- **macOS**: Keychain
+- **Linux**: `~/.ollama/`
+- **Windows**: Credential Manager
+
+## When to use signout
+
+<CardGroup cols={2}>
+  <Card title="Switching accounts" icon="repeat">
+    Sign out to switch between different ollama.com accounts
+  </Card>
+  <Card title="Shared device" icon="users">
+    Sign out when done on a shared or public computer
+  </Card>
+  <Card title="Revoking access" icon="ban">
+    Sign out to revoke authentication for security
+  </Card>
+  <Card title="Troubleshooting" icon="wrench">
+    Sign out and back in to fix authentication issues
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Not currently signed in">
+    If you're not signed in, the command will inform you that there's no active session to sign out from.
+  </Accordion>
+  
+  <Accordion title="Server unreachable">
+    If the Ollama server is not running, you may need to start it first with `ollama serve` before signing out.
+  </Accordion>
+  
+  <Accordion title="Cloud models stop working">
+    This is expected behavior. After signing out, you won't have access to cloud models until you sign in again with `ollama signin`.
+  </Accordion>
+</AccordionGroup>
+
+## Exit codes
+
+- `0` - Successfully signed out
+- `1` - Sign-out failed (server error or not signed in)
+
+## Notes
+
+<Note>
+Signing out only affects authentication with ollama.com. Your locally stored models remain unchanged.
+</Note>
+
+<Warning>
+Running cloud models (e.g., models with large parameter counts hosted remotely) requires authentication. Sign out only if you don't need cloud access.
+</Warning>
+
+## Related commands
+
+<CardGroup cols={2}>
+  <Card title="ollama signin" href="/cli/signin">
+    Sign in to ollama.com
+  </Card>
+  <Card title="ollama push" href="/cli/push">
+    Push models (requires authentication)
+  </Card>
+  <Card title="Ollama Cloud" href="/platforms/cloud">
+    Learn about cloud models
+  </Card>
+</CardGroup>
