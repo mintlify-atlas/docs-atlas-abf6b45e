@@ -1,0 +1,200 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "Ollama",
+  "projectDescription": "Run large language models locally with a simple CLI and REST API",
+  "theme": "maple",
+  "primaryColor": "#000000",
+  "lightColor": "#b5b5b5",
+  "darkColor": "#000000",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "models",
+              "modelfile",
+              "context-and-memory"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/chat",
+              "features/streaming",
+              "features/embeddings",
+              "features/vision",
+              "features/tool-calling",
+              "features/thinking",
+              "features/structured-outputs",
+              "features/web-search"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/overview",
+              "integrations/openclaw",
+              "integrations/claude-code",
+              "integrations/codex",
+              "integrations/opencode",
+              "integrations/droid",
+              "integrations/ide-extensions",
+              "integrations/libraries"
+            ]
+          },
+          {
+            "group": "Platform Guides",
+            "pages": [
+              "platforms/linux",
+              "platforms/macos",
+              "platforms/windows",
+              "platforms/docker",
+              "platforms/cloud"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/import",
+              "advanced/gpu",
+              "advanced/environment-variables",
+              "advanced/model-quantization"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "faq",
+              "troubleshooting",
+              "contributing"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI Reference",
+        "groups": [
+          {
+            "group": "Commands",
+            "pages": [
+              "cli/overview",
+              "cli/run",
+              "cli/serve",
+              "cli/pull",
+              "cli/push",
+              "cli/create",
+              "cli/show",
+              "cli/list",
+              "cli/ps",
+              "cli/stop",
+              "cli/rm",
+              "cli/launch"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "api/introduction",
+              "api/authentication",
+              "api/libraries"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "api/streaming",
+              "api/usage",
+              "api/errors"
+            ]
+          },
+          {
+            "group": "Compatibility",
+            "pages": [
+              "api/openai-compatibility",
+              "api/anthropic-compatibility"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/endpoints/chat",
+              "api/endpoints/generate",
+              "api/endpoints/embed",
+              "api/endpoints/embeddings",
+              "api/endpoints/create",
+              "api/endpoints/pull",
+              "api/endpoints/push",
+              "api/endpoints/list",
+              "api/endpoints/show",
+              "api/endpoints/copy",
+              "api/endpoints/delete",
+              "api/endpoints/ps",
+              "api/endpoints/version"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "CLI tool for running LLMs locally",
+    "REST API for programmatic access",
+    "Model management (pull, push, create, delete)",
+    "Chat and text generation",
+    "Embeddings generation",
+    "Streaming responses",
+    "Vision/multimodal support",
+    "Tool calling capabilities",
+    "Thinking mode for reasoning models",
+    "Structured output with JSON schemas",
+    "Integration launcher for external tools",
+    "Cross-platform support (macOS, Windows, Linux)",
+    "Docker deployment",
+    "GPU acceleration",
+    "OpenAI and Anthropic API compatibility"
+  ],
+  "publicApiSurface": [
+    "ollama run",
+    "ollama serve",
+    "ollama pull",
+    "ollama push",
+    "ollama create",
+    "ollama show",
+    "ollama list (ls)",
+    "ollama ps",
+    "ollama stop",
+    "ollama rm",
+    "ollama launch",
+    "ollama signin",
+    "ollama signout",
+    "POST /api/chat",
+    "POST /api/generate",
+    "POST /api/embed",
+    "POST /api/embeddings",
+    "POST /api/create",
+    "POST /api/pull",
+    "POST /api/push",
+    "GET /api/tags",
+    "POST /api/show",
+    "POST /api/copy",
+    "DELETE /api/delete",
+    "GET /api/ps",
+    "GET /api/version"
+  ]
+}
