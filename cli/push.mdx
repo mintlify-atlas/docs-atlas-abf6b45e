@@ -1,0 +1,259 @@
+---
+title: 'ollama push'
+description: 'Upload a model to a registry'
+icon: 'upload'
+---
+
+## Synopsis
+
+```bash
+ollama push MODEL
+```
+
+## Description
+
+The `push` command uploads a local model to a registry (default: Ollama's public registry at ollama.com). This allows you to share custom models with others or back them up to a remote location.
+
+To push models to ollama.com, you must first sign in using `ollama signin`.
+
+## Arguments
+
+<ParamField path="MODEL" type="string" required>
+  Name of the model to push. Must include namespace for public registries.
+  
+  Format: `namespace/model:tag`
+  
+  Examples:
+  - `myusername/custom-llama:latest`
+  - `myusername/fine-tuned-model:v1`
+</ParamField>
+
+## Options
+
+<ParamField path="--insecure" type="boolean" default="false">
+  Allow pushing to registries without HTTPS
+  
+  ```bash
+  ollama push --insecure localhost:5000/mymodel
+  ```
+</ParamField>
+
+## Model Naming
+
+Models must follow this naming convention for public registries:
+
+```
+namespace/model[:tag]
+```
+
+- **namespace**: Your username or organization (required for ollama.com)
+- **model**: Your model name
+- **tag**: Optional version tag (defaults to `latest`)
+
+## Examples
+
+### Push to Ollama.com
+
+First, sign in:
+
+```bash
+ollama signin
+```
+
+Then push your model:
+
+```bash
+ollama push myusername/custom-model
+```
+
+Output:
+```
+pushing manifest
+pushing 8934d96d3f08: 100%
+pushing 8c17c2ebb0ea: 100%
+pushing 7c23fb36d801: 100%
+verifying sha256 digest
+writing manifest
+success
+
+You can find your model at:
+
+    https://ollama.com/myusername/custom-model
+```
+
+### Push with Tag
+
+Push a specific version:
+
+```bash
+ollama push myusername/model:v1.0
+```
+
+### Push to Custom Registry
+
+Push to a private or custom registry:
+
+```bash
+ollama push registry.company.com/team/model:latest
+```
+
+### Push to Local Registry
+
+Push to a local insecure registry:
+
+```bash
+ollama push --insecure localhost:5000/test-model
+```
+
+<Warning>
+Only use `--insecure` for trusted local registries. Never use it for public or untrusted destinations.
+</Warning>
+
+## Prerequisites
+
+### Authentication
+
+For ollama.com, you must authenticate first:
+
+```bash
+ollama signin
+```
+
+This will open your browser to complete the sign-in process.
+
+### Model Ownership
+
+You can only push models to namespaces you own. Attempting to push to someone else's namespace will result in an error:
+
+```
+Error: you are not authorized to push to this namespace, create the model under a namespace you own
+```
+
+## Progress Output
+
+During upload, you'll see progress for each layer:
+
+```
+pushing manifest
+pushing 8934d96d3f08: 67% ████████████░░░░ 3.4 GB/5.0 GB
+pushing 8c17c2ebb0ea: queued
+```
+
+Progress indicators show:
+- Layer digest (first 12 characters)
+- Percentage complete
+- Bytes uploaded / total size
+
+## Model Layers
+
+The following layers are pushed:
+- Model weights
+- Configuration and metadata
+- Template
+- Parameters
+- System message
+- License
+
+## Bandwidth Considerations
+
+Uploading large models can take significant time:
+
+| Model Size | Upload Time (10 Mbps) | Upload Time (100 Mbps) |
+|------------|----------------------|------------------------|
+| 7B params  | ~45 minutes          | ~5 minutes             |
+| 13B params | ~1.5 hours           | ~9 minutes             |
+| 34B params | ~4 hours             | ~25 minutes            |
+| 70B params | ~8 hours             | ~50 minutes            |
+
+<Note>
+Actual upload times vary based on network speed and server load.
+</Note>
+
+## Environment Variables
+
+<ParamField path="OLLAMA_HOST" type="string" default="http://127.0.0.1:11434">
+  Ollama server address to read the model from
+</ParamField>
+
+## Exit Codes
+
+- `0` - Success, model pushed completely
+- `1` - Error occurred (authentication, network, permissions, etc.)
+
+## Troubleshooting
+
+### Not Authorized
+
+```
+Error: you are not authorized to push to this namespace
+```
+
+**Solution**: Ensure you're signed in and pushing to a namespace you own:
+
+```bash
+ollama signin
+ollama push yourusername/yourmodel
+```
+
+### Model Not Found
+
+```
+Error: model 'mymodel' not found
+```
+
+**Solution**: The model must exist locally before pushing. Create it first:
+
+```bash
+ollama create myusername/mymodel -f Modelfile
+ollama push myusername/mymodel
+```
+
+### Network Timeout
+
+```
+Error: context deadline exceeded
+```
+
+**Solution**: Check your internet connection and try again. Large uploads may time out on slow connections.
+
+### Invalid Model Name
+
+```
+Error: invalid model name
+```
+
+**Solution**: Model names for ollama.com must include a namespace:
+
+```bash
+# Wrong
+ollama push mymodel
+
+# Correct
+ollama push myusername/mymodel
+```
+
+## Sharing Your Model
+
+After successfully pushing to ollama.com:
+
+1. Your model will be available at: `https://ollama.com/{namespace}/{model}`
+2. Others can pull it with: `ollama pull {namespace}/{model}`
+3. You can add a README and description on the website
+
+## Privacy
+
+<Warning>
+Models pushed to ollama.com are **public by default**. Anyone can discover and pull your model.
+</Warning>
+
+For private models:
+- Use a private registry
+- Or keep models local and share via other means
+
+## Related Commands
+
+- [`ollama signin`](/cli/push#authentication) - Sign in to ollama.com
+- [`ollama create`](/cli/create) - Create a model to push
+- [`ollama pull`](/cli/pull) - Pull a model from a registry
+- [`ollama list`](/cli/list) - List local models available to push
+- [`ollama show`](/cli/show) - Show model details before pushing

@@ -1,0 +1,239 @@
+---
+title: Authentication
+description: Authentication methods for accessing Ollama's local and cloud APIs
+---
+
+Ollama supports flexible authentication depending on where and how you're running models. Local access requires no authentication, while cloud features use secure token-based authentication.
+
+## Local API Access
+
+No authentication is required when accessing Ollama's API locally via `http://localhost:11434`.
+
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "gemma3",
+  "prompt": "Hello, world!"
+}'
+```
+
+<Note>
+Local access is unrestricted by default. If you need to secure your local Ollama instance, consider using a reverse proxy with authentication or firewall rules.
+</Note>
+
+## When Authentication is Required
+
+Authentication is required for the following use cases:
+
+<CardGroup cols={2}>
+  <Card title="Cloud Models" icon="cloud">
+    Running cloud-based models via ollama.com
+  </Card>
+  <Card title="Publishing Models" icon="upload">
+    Pushing models to the Ollama registry
+  </Card>
+  <Card title="Private Models" icon="lock">
+    Downloading private models from the registry
+  </Card>
+  <Card title="Remote Inference" icon="server">
+    Accessing ollama.com's hosted inference API
+  </Card>
+</CardGroup>
+
+## Authentication Methods
+
+Ollama supports two authentication methods:
+
+### Method 1: Signing In (Recommended)
+
+Sign in from your local Ollama installation, and authentication is handled automatically:
+
+<Steps>
+  <Step title="Sign in to Ollama">
+    Run the signin command in your terminal:
+    
+    ```bash
+    ollama signin
+    ```
+    
+    You'll be prompted to complete the authentication flow via your browser.
+  </Step>
+  
+  <Step title="Use authenticated commands">
+    Once signed in, Ollama automatically authenticates commands that require it:
+    
+    ```bash
+    ollama run gpt-oss:120b-cloud
+    ```
+  </Step>
+  
+  <Step title="API requests work automatically">
+    Local API requests to cloud models are automatically authenticated:
+    
+    ```bash
+    curl http://localhost:11434/api/generate -d '{
+      "model": "gpt-oss:120b-cloud",
+      "prompt": "Why is the sky blue?"
+    }'
+    ```
+  </Step>
+</Steps>
+
+<Note>
+When you sign in, Ollama stores authentication credentials locally and automatically includes them in requests that need authentication.
+</Note>
+
+### Method 2: API Keys
+
+For programmatic access to ollama.com's API (`https://ollama.com/api`), use API keys for authentication.
+
+<Steps>
+  <Step title="Create an API key">
+    Generate an API key from your [Ollama settings page](https://ollama.com/settings/keys).
+  </Step>
+  
+  <Step title="Set the environment variable">
+    Export your API key as an environment variable:
+    
+    ```bash
+    export OLLAMA_API_KEY=your_api_key_here
+    ```
+  </Step>
+  
+  <Step title="Use in API requests">
+    Include the API key in the `Authorization` header:
+    
+    <CodeGroup>
+    ```bash cURL
+    curl https://ollama.com/api/generate \
+      -H "Authorization: Bearer $OLLAMA_API_KEY" \
+      -d '{
+        "model": "gpt-oss:120b",
+        "prompt": "Why is the sky blue?",
+        "stream": false
+      }'
+    ```
+    
+    ```python Python
+    import os
+    from ollama import Client
+    
+    client = Client(
+      host='https://ollama.com',
+      headers={'Authorization': f'Bearer {os.environ["OLLAMA_API_KEY"]}'}
+    )
+    
+    response = client.generate(
+      model='gpt-oss:120b',
+      prompt='Why is the sky blue?'
+    )
+    print(response['response'])
+    ```
+    
+    ```javascript JavaScript
+    import ollama from 'ollama';
+    
+    const client = new ollama.Ollama({
+      host: 'https://ollama.com',
+      headers: {
+        'Authorization': `Bearer ${process.env.OLLAMA_API_KEY}`
+      }
+    });
+    
+    const response = await client.generate({
+      model: 'gpt-oss:120b',
+      prompt: 'Why is the sky blue?'
+    });
+    console.log(response.response);
+    ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+## API Key Management
+
+<Warning>
+API keys provide full access to your Ollama account. Store them securely and never commit them to version control.
+</Warning>
+
+- **Expiration**: API keys don't currently expire automatically
+- **Revocation**: You can revoke keys at any time in your [API keys settings](https://ollama.com/settings/keys)
+- **Multiple keys**: Create multiple keys for different applications or environments
+
+## Authentication Flow Details
+
+When using authenticated requests, Ollama implements a secure challenge-response authentication mechanism:
+
+1. **Timestamp-based challenges**: Each request includes a timestamp (`ts`) parameter to prevent replay attacks
+2. **Signed tokens**: Authentication tokens are cryptographically signed using your local credentials
+3. **Automatic token refresh**: The client handles token refresh transparently
+
+<Note>
+The authentication implementation can be found in `api/client.go` and `server/auth.go` in the Ollama source code.
+</Note>
+
+## Error Handling
+
+When authentication fails, you'll receive a `401 Unauthorized` response:
+
+```json
+{
+  "error": "unauthorized",
+  "signin_url": "https://ollama.com/connect?name=..."
+}
+```
+
+The `signin_url` field provides a direct link to authenticate your installation.
+
+## Signing Out
+
+To remove stored authentication credentials from your local installation:
+
+```bash
+ollama signout
+```
+
+You can also disconnect specific devices from the API:
+
+```bash
+DELETE /api/user/keys/{encodedKey}
+```
+
+## Environment Variables
+
+Ollama respects the following authentication-related environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|----------|
+| `OLLAMA_HOST` | Base URL for API requests | `http://localhost:11434` |
+| `OLLAMA_API_KEY` | API key for ollama.com authentication | None |
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Environment Variables" icon="gear">
+    Store API keys in environment variables, never in code
+  </Card>
+  <Card title="Rotate Keys Regularly" icon="arrows-rotate">
+    Periodically create new keys and revoke old ones
+  </Card>
+  <Card title="Use Signin for Local Dev" icon="computer">
+    The `ollama signin` method is simpler for local development
+  </Card>
+  <Card title="Use API Keys for CI/CD" icon="robot">
+    API keys are better for automated deployments and services
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Client Libraries" icon="book" href="/api/libraries">
+    Use Python or JavaScript libraries with built-in auth support
+  </Card>
+  <Card title="Generate Text" icon="wand-magic-sparkles" href="/api/generate">
+    Start generating text with authenticated models
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation" href="/api/errors">
+    Learn how to handle authentication errors
+  </Card>
+</CardGroup>

@@ -1,0 +1,459 @@
+---
+title: Client Libraries
+description: Official Python and JavaScript libraries for the Ollama API
+---
+
+Ollama provides official client libraries for Python and JavaScript that make it easy to integrate LLM capabilities into your applications. These libraries handle authentication, streaming, error handling, and provide type-safe interfaces.
+
+## Python Library
+
+The official Python library provides a clean, Pythonic interface to the Ollama API.
+
+### Installation
+
+<CodeGroup>
+```bash pip
+pip install ollama
+```
+
+```bash poetry
+poetry add ollama
+```
+
+```bash conda
+conda install -c conda-forge ollama
+```
+</CodeGroup>
+
+### Quick Start
+
+<CodeGroup>
+```python Generate
+from ollama import generate
+
+response = generate(
+  model='gemma3',
+  prompt='Why is the sky blue?'
+)
+
+print(response['response'])
+```
+
+```python Chat
+from ollama import chat
+
+response = chat(
+  model='gemma3',
+  messages=[
+    {
+      'role': 'user',
+      'content': 'Why is the sky blue?',
+    },
+  ]
+)
+
+print(response.message.content)
+```
+
+```python Streaming
+from ollama import chat
+
+stream = chat(
+  model='gemma3',
+  messages=[{'role': 'user', 'content': 'Tell me a story'}],
+  stream=True
+)
+
+for chunk in stream:
+  print(chunk.message.content, end='', flush=True)
+```
+</CodeGroup>
+
+### Advanced Usage
+
+<CodeGroup>
+```python Custom Client
+from ollama import Client
+
+# Connect to a custom host
+client = Client(host='http://localhost:11434')
+
+response = client.generate(
+  model='gemma3',
+  prompt='Hello, world!'
+)
+```
+
+```python Embeddings
+from ollama import embed
+
+response = embed(
+  model='nomic-embed-text',
+  input='The quick brown fox jumps over the lazy dog'
+)
+
+print(response['embeddings'][0][:5])  # First 5 dimensions
+```
+
+```python Model Management
+from ollama import pull, list as list_models, delete
+
+# Pull a model
+pull('gemma3')
+
+# List all models
+models = list_models()
+for model in models['models']:
+  print(f"{model['name']} - {model['size']}")
+
+# Delete a model
+delete('old-model')
+```
+
+```python Multimodal
+from ollama import generate
+import base64
+
+with open('image.jpg', 'rb') as f:
+  image_data = base64.b64encode(f.read()).decode('utf-8')
+
+response = generate(
+  model='llava',
+  prompt='What is in this image?',
+  images=[image_data]
+)
+
+print(response['response'])
+```
+</CodeGroup>
+
+### Context Management
+
+Maintain conversation context across multiple requests:
+
+```python
+from ollama import generate
+
+# First request
+response1 = generate(
+  model='gemma3',
+  prompt='What is the capital of France?'
+)
+
+# Use context for follow-up
+response2 = generate(
+  model='gemma3',
+  prompt='What is its population?',
+  context=response1['context']
+)
+
+print(response2['response'])
+```
+
+### Error Handling
+
+```python
+from ollama import generate, ResponseError
+
+try:
+  response = generate(
+    model='nonexistent-model',
+    prompt='Hello'
+  )
+except ResponseError as e:
+  print(f"Error: {e.error}")
+  if e.status_code == 404:
+    print("Model not found. Try pulling it first.")
+```
+
+## JavaScript Library
+
+The official JavaScript library works in both Node.js and browser environments.
+
+### Installation
+
+<CodeGroup>
+```bash npm
+npm install ollama
+```
+
+```bash yarn
+yarn add ollama
+```
+
+```bash pnpm
+pnpm add ollama
+```
+</CodeGroup>
+
+### Quick Start
+
+<CodeGroup>
+```javascript Generate
+import ollama from 'ollama';
+
+const response = await ollama.generate({
+  model: 'gemma3',
+  prompt: 'Why is the sky blue?'
+});
+
+console.log(response.response);
+```
+
+```javascript Chat
+import ollama from 'ollama';
+
+const response = await ollama.chat({
+  model: 'gemma3',
+  messages: [
+    { role: 'user', content: 'Why is the sky blue?' }
+  ]
+});
+
+console.log(response.message.content);
+```
+
+```javascript Streaming
+import ollama from 'ollama';
+
+const stream = await ollama.chat({
+  model: 'gemma3',
+  messages: [{ role: 'user', content: 'Tell me a story' }],
+  stream: true
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.message.content);
+}
+```
+</CodeGroup>
+
+### Advanced Usage
+
+<CodeGroup>
+```javascript Custom Client
+import { Ollama } from 'ollama';
+
+const ollama = new Ollama({
+  host: 'http://192.168.1.100:11434'
+});
+
+const response = await ollama.generate({
+  model: 'gemma3',
+  prompt: 'Hello, world!'
+});
+```
+
+```javascript Embeddings
+import ollama from 'ollama';
+
+const response = await ollama.embed({
+  model: 'nomic-embed-text',
+  input: 'The quick brown fox jumps over the lazy dog'
+});
+
+console.log(response.embeddings[0].slice(0, 5));
+```
+
+```javascript Model Management
+import ollama from 'ollama';
+
+// Pull a model
+await ollama.pull({ model: 'gemma3' });
+
+// List all models
+const models = await ollama.list();
+models.models.forEach(model => {
+  console.log(`${model.name} - ${model.size}`);
+});
+
+// Delete a model
+await ollama.delete({ model: 'old-model' });
+```
+
+```javascript Multimodal
+import ollama from 'ollama';
+import fs from 'fs';
+
+const imageBuffer = fs.readFileSync('image.jpg');
+const imageBase64 = imageBuffer.toString('base64');
+
+const response = await ollama.generate({
+  model: 'llava',
+  prompt: 'What is in this image?',
+  images: [imageBase64]
+});
+
+console.log(response.response);
+```
+</CodeGroup>
+
+### TypeScript Support
+
+The JavaScript library includes full TypeScript definitions:
+
+```typescript
+import ollama, { ChatResponse, Message } from 'ollama';
+
+const messages: Message[] = [
+  { role: 'user', content: 'Hello!' }
+];
+
+const response: ChatResponse = await ollama.chat({
+  model: 'gemma3',
+  messages: messages
+});
+
+console.log(response.message.content);
+```
+
+### Abort Requests
+
+Cancel in-flight requests using AbortController:
+
+```javascript
+import ollama from 'ollama';
+
+const controller = new AbortController();
+
+// Cancel after 5 seconds
+setTimeout(() => controller.abort(), 5000);
+
+try {
+  const response = await ollama.generate({
+    model: 'gemma3',
+    prompt: 'Write a long story...'
+  }, { signal: controller.signal });
+} catch (error) {
+  if (error.name === 'AbortError') {
+    console.log('Request cancelled');
+  }
+}
+```
+
+## Library Features Comparison
+
+| Feature | Python | JavaScript |
+|---------|--------|------------|
+| Generate text | ✓ | ✓ |
+| Chat completions | ✓ | ✓ |
+| Streaming | ✓ | ✓ |
+| Embeddings | ✓ | ✓ |
+| Model management | ✓ | ✓ |
+| Multimodal input | ✓ | ✓ |
+| Context preservation | ✓ | ✓ |
+| Type hints/TypeScript | ✓ | ✓ |
+| Custom hosts | ✓ | ✓ |
+| Authentication | ✓ | ✓ |
+| Request cancellation | ✓ | ✓ |
+| Browser support | ✗ | ✓ |
+
+## Authentication with Libraries
+
+Both libraries support authentication for ollama.com:
+
+<CodeGroup>
+```python Python
+import os
+from ollama import Client
+
+client = Client(
+  host='https://ollama.com',
+  headers={'Authorization': f'Bearer {os.environ["OLLAMA_API_KEY"]}'}
+)
+
+response = client.generate(
+  model='gpt-oss:120b',
+  prompt='Hello!'
+)
+```
+
+```javascript JavaScript
+import { Ollama } from 'ollama';
+
+const ollama = new Ollama({
+  host: 'https://ollama.com',
+  headers: {
+    'Authorization': `Bearer ${process.env.OLLAMA_API_KEY}`
+  }
+});
+
+const response = await ollama.generate({
+  model: 'gpt-oss:120b',
+  prompt: 'Hello!'
+});
+```
+</CodeGroup>
+
+## Community Libraries
+
+In addition to the official libraries, the Ollama community has created libraries for many languages:
+
+<CardGroup cols={3}>
+  <Card title="Ruby" icon="gem">
+    [ruby_llm](https://github.com/crmne/ruby_llm)
+  </Card>
+  <Card title=".NET" icon="microsoft">
+    [OllamaSharp](https://github.com/awaescher/OllamaSharp)
+  </Card>
+  <Card title="Rust" icon="rust">
+    [ollama-rs](https://github.com/pepperoni21/ollama-rs)
+  </Card>
+  <Card title="Java" icon="java">
+    [ollama4j](https://github.com/ollama4j/ollama4j)
+  </Card>
+  <Card title="Swift" icon="apple">
+    [ollama-swift](https://github.com/mattt/ollama-swift)
+  </Card>
+  <Card title="Go" icon="golang">
+    [LangChainGo](https://github.com/tmc/langchaingo/)
+  </Card>
+  <Card title="PHP" icon="php">
+    [LLPhant](https://github.com/theodo-group/LLPhant)
+  </Card>
+  <Card title="Elixir" icon="droplet">
+    [Elixir LangChain](https://github.com/brainlid/langchain)
+  </Card>
+  <Card title="R" icon="r-project">
+    [rollama](https://github.com/JBGruber/rollama)
+  </Card>
+</CardGroup>
+
+See the [Ollama GitHub repository](https://github.com/ollama/ollama?tab=readme-ov-file#libraries--sdks) for a complete list.
+
+## Repository Links
+
+<CardGroup cols={2}>
+  <Card title="Python Library" icon="github" href="https://github.com/ollama/ollama-python">
+    Source code, examples, and issue tracker
+  </Card>
+  <Card title="JavaScript Library" icon="github" href="https://github.com/ollama/ollama-js">
+    Source code, examples, and issue tracker
+  </Card>
+</CardGroup>
+
+## Examples
+
+Both libraries include comprehensive example code in their repositories:
+
+- **Python**: [ollama-python/examples](https://github.com/ollama/ollama-python/tree/main/examples)
+- **JavaScript**: [ollama-js/examples](https://github.com/ollama/ollama-js/tree/main/examples)
+
+For Go examples using the native API package, see [api/examples](https://github.com/ollama/ollama/tree/main/api/examples) in the main repository.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/api/generate">
+    Explore all available endpoints
+  </Card>
+  <Card title="Streaming" icon="tower-broadcast" href="/api/streaming">
+    Implement real-time streaming responses
+  </Card>
+  <Card title="Chat API" icon="comments" href="/api/chat">
+    Build multi-turn conversations
+  </Card>
+  <Card title="Embeddings" icon="vector-square" href="/api/embed">
+    Create embeddings for semantic search
+  </Card>
+</CardGroup>

@@ -1,0 +1,353 @@
+---
+title: Linux
+description: Install and configure Ollama on Linux with support for NVIDIA, AMD, and CPU inference
+---
+
+## Quick Install
+
+Install Ollama on Linux with a single command:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+This script automatically detects your system and installs the appropriate version.
+
+## Manual Installation
+
+<Warning>
+If upgrading from a prior version, remove old libraries first:
+```bash
+sudo rm -rf /usr/lib/ollama
+```
+</Warning>
+
+<Steps>
+  <Step title="Download and Extract">
+    Download the Ollama package for your architecture:
+
+    <CodeGroup>
+    ```bash AMD64
+    curl -fsSL https://ollama.com/download/ollama-linux-amd64.tar.zst \
+        | sudo tar x -C /usr
+    ```
+
+    ```bash ARM64
+    curl -fsSL https://ollama.com/download/ollama-linux-arm64.tar.zst \
+        | sudo tar x -C /usr
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Start Ollama">
+    In a terminal, start the Ollama server:
+
+    ```bash
+    ollama serve
+    ```
+  </Step>
+
+  <Step title="Verify Installation">
+    In another terminal, verify Ollama is running:
+
+    ```bash
+    ollama -v
+    ```
+  </Step>
+</Steps>
+
+## GPU Support
+
+### AMD GPU Installation
+
+If you have an AMD GPU, download and extract the ROCm package:
+
+```bash
+curl -fsSL https://ollama.com/download/ollama-linux-amd64-rocm.tar.zst \
+    | sudo tar x -C /usr
+```
+
+<Note>
+While AMD has contributed the `amdgpu` driver upstream to the Linux kernel, the version may be older and not support all ROCm features. For best support, install the latest driver from [AMD's official site](https://www.amd.com/en/support/linux-drivers).
+</Note>
+
+### NVIDIA GPU Setup
+
+Ollama automatically detects NVIDIA GPUs with CUDA support.
+
+**Requirements:**
+- NVIDIA GPU with compute capability 5.0+
+- Driver version 531 or newer
+
+**Install CUDA drivers:**
+
+1. [Download and install CUDA](https://developer.nvidia.com/cuda-downloads)
+2. Verify installation:
+
+```bash
+nvidia-smi
+```
+
+This should display your GPU details.
+
+## Running as a System Service
+
+<Note>
+Recommended for production use and automatic startup.
+</Note>
+
+<Steps>
+  <Step title="Create Ollama User">
+    Create a dedicated user and group for Ollama:
+
+    ```bash
+    sudo useradd -r -s /bin/false -U -m -d /usr/share/ollama ollama
+    sudo usermod -a -G ollama $(whoami)
+    ```
+  </Step>
+
+  <Step title="Create Service File">
+    Create `/etc/systemd/system/ollama.service`:
+
+    ```ini
+    [Unit]
+    Description=Ollama Service
+    After=network-online.target
+
+    [Service]
+    ExecStart=/usr/bin/ollama serve
+    User=ollama
+    Group=ollama
+    Restart=always
+    RestartSec=3
+    Environment="PATH=$PATH"
+
+    [Install]
+    WantedBy=multi-user.target
+    ```
+  </Step>
+
+  <Step title="Enable and Start Service">
+    Reload systemd and enable the service:
+
+    ```bash
+    sudo systemctl daemon-reload
+    sudo systemctl enable ollama
+    sudo systemctl start ollama
+    ```
+  </Step>
+
+  <Step title="Verify Service Status">
+    Check that Ollama is running:
+
+    ```bash
+    sudo systemctl status ollama
+    ```
+  </Step>
+</Steps>
+
+## Configuration
+
+### Environment Variables
+
+Customize Ollama by editing the systemd service:
+
+```bash
+sudo systemctl edit ollama
+```
+
+Or create an override file at `/etc/systemd/system/ollama.service.d/override.conf`:
+
+```ini
+[Service]
+Environment="OLLAMA_HOST=0.0.0.0:11434"
+Environment="OLLAMA_DEBUG=1"
+Environment="OLLAMA_MODELS=/mnt/models"
+```
+
+### Common Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|--------|
+| `OLLAMA_HOST` | Server bind address | `127.0.0.1:11434` |
+| `OLLAMA_MODELS` | Model storage location | `/usr/share/ollama/.ollama/models` |
+| `OLLAMA_DEBUG` | Enable debug logging | `0` |
+| `OLLAMA_NUM_PARALLEL` | Max parallel requests | `1` |
+| `CUDA_VISIBLE_DEVICES` | Select specific NVIDIA GPUs | All GPUs |
+| `HSA_OVERRIDE_GFX_VERSION` | AMD GPU override | Auto-detect |
+
+## Installing Specific Versions
+
+Use the `OLLAMA_VERSION` environment variable to install a specific version:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | OLLAMA_VERSION=0.5.7 sh
+```
+
+Find available versions in the [releases page](https://github.com/ollama/ollama/releases).
+
+## Updates
+
+Update Ollama by running the install script again:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+Or manually download the latest version:
+
+```bash
+curl -fsSL https://ollama.com/download/ollama-linux-amd64.tar.zst \
+    | sudo tar x -C /usr
+sudo systemctl restart ollama
+```
+
+## Logs and Debugging
+
+### View Logs
+
+For systemd service:
+
+```bash
+journalctl -e -u ollama
+```
+
+Follow logs in real-time:
+
+```bash
+journalctl -u ollama --no-pager --follow
+```
+
+### Manual Server Logs
+
+If running `ollama serve` manually, logs appear in the terminal.
+
+### Enable Debug Logging
+
+```bash
+sudo systemctl edit ollama
+```
+
+Add:
+
+```ini
+[Service]
+Environment="OLLAMA_DEBUG=1"
+```
+
+Then restart:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart ollama
+```
+
+## Troubleshooting
+
+### NVIDIA GPU Not Detected
+
+If Ollama doesn't detect your NVIDIA GPU:
+
+1. Verify drivers are loaded:
+   ```bash
+   nvidia-smi
+   ```
+
+2. Load the UVM driver:
+   ```bash
+   sudo nvidia-modprobe -u
+   ```
+
+3. Reload the nvidia_uvm driver:
+   ```bash
+   sudo rmmod nvidia_uvm
+   sudo modprobe nvidia_uvm
+   ```
+
+4. Check for errors in system logs:
+   ```bash
+   sudo dmesg | grep -i nvidia
+   ```
+
+### AMD GPU Issues
+
+For AMD GPU troubleshooting:
+
+1. Check device permissions:
+   ```bash
+   ls -l /dev/kfd /dev/dri
+   ```
+
+2. Ensure user is in the correct groups:
+   ```bash
+   sudo usermod -a -G video,render ollama
+   ```
+
+3. Enable debug logging:
+   ```bash
+   AMD_LOG_LEVEL=3 ollama serve
+   ```
+
+4. Check for driver errors:
+   ```bash
+   sudo dmesg | grep -i amdgpu
+   ```
+
+### Temp Directory Issues
+
+If your system has `noexec` on `/tmp`, set an alternate temporary directory:
+
+```bash
+sudo systemctl edit ollama
+```
+
+Add:
+
+```ini
+[Service]
+Environment="OLLAMA_TMPDIR=/usr/share/ollama/tmp"
+```
+
+## Uninstallation
+
+<Steps>
+  <Step title="Stop and Disable Service">
+    ```bash
+    sudo systemctl stop ollama
+    sudo systemctl disable ollama
+    sudo rm /etc/systemd/system/ollama.service
+    ```
+  </Step>
+
+  <Step title="Remove Binaries and Libraries">
+    ```bash
+    sudo rm $(which ollama)
+    sudo rm -r $(which ollama | tr 'bin' 'lib')
+    ```
+  </Step>
+
+  <Step title="Remove User Data">
+    ```bash
+    sudo rm -r /usr/share/ollama
+    sudo userdel ollama
+    sudo groupdel ollama
+    ```
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="GPU Configuration" icon="microchip" href="/gpu">
+    Learn about GPU support and optimization
+  </Card>
+  <Card title="API Reference" icon="code" href="/api">
+    Integrate Ollama into your applications
+  </Card>
+  <Card title="Model Library" icon="book" href="https://ollama.com/library">
+    Browse available models
+  </Card>
+  <Card title="Docker Setup" icon="docker" href="/platforms/docker">
+    Run Ollama in containers
+  </Card>
+</CardGroup>

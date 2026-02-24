@@ -1,0 +1,225 @@
+---
+title: Streaming
+description: Stream model responses in real-time for better user experience.
+---
+
+Streaming allows you to render text as it is produced by the model, providing a more responsive user experience.
+
+Streaming is **enabled by default** through the REST API, but **disabled by default** in the SDKs.
+
+## Enable streaming
+
+To enable streaming in the SDKs, set the `stream` parameter to `true`.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from ollama import chat
+
+    stream = chat(
+      model='llama3.2',
+      messages=[{'role': 'user', 'content': 'Why is the sky blue?'}],
+      stream=True,
+    )
+
+    for chunk in stream:
+      print(chunk.message.content, end='', flush=True)
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    import ollama from 'ollama'
+
+    const stream = await ollama.chat({
+      model: 'llama3.2',
+      messages: [{ role: 'user', content: 'Why is the sky blue?' }],
+      stream: true,
+    })
+
+    for await (const chunk of stream) {
+      process.stdout.write(chunk.message.content)
+    }
+    ```
+  </Tab>
+  <Tab title="cURL">
+    Streaming is enabled by default for the REST API:
+
+    ```shell
+    curl http://localhost:11434/api/chat -d '{
+      "model": "llama3.2",
+      "messages": [
+        {"role": "user", "content": "Why is the sky blue?"}
+      ]
+    }'
+    ```
+
+    To disable streaming, set `stream: false`:
+
+    ```shell
+    curl http://localhost:11434/api/chat -d '{
+      "model": "llama3.2",
+      "messages": [
+        {"role": "user", "content": "Why is the sky blue?"}
+      ],
+      "stream": false
+    }'
+    ```
+  </Tab>
+</Tabs>
+
+## Key streaming concepts
+
+1. **Chat streaming**: Stream partial assistant messages. Each chunk includes the `content` so you can render messages as they arrive.
+2. **Thinking streaming**: Thinking-capable models emit a `thinking` field alongside regular content in each chunk. Detect this field in streaming chunks to show or hide reasoning traces before the final answer arrives.
+3. **Tool calling streaming**: Watch for streamed `tool_calls` in each chunk, execute the requested tool, and append tool outputs back into the conversation.
+
+## Handling streamed chunks
+
+<Note>
+  It is necessary to accumulate the partial fields in order to maintain the history of the conversation. This is particularly important for tool calling where the thinking, tool call from the model, and the executed tool result must be passed back to the model in the next request.
+</Note>
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from ollama import chat
+
+    stream = chat(
+      model='qwen3',
+      messages=[{'role': 'user', 'content': 'What is 17 × 23?'}],
+      stream=True,
+    )
+
+    in_thinking = False
+    content = ''
+    thinking = ''
+    for chunk in stream:
+      if chunk.message.thinking:
+        if not in_thinking:
+          in_thinking = True
+          print('Thinking:\n', end='', flush=True)
+        print(chunk.message.thinking, end='', flush=True)
+        # accumulate the partial thinking
+        thinking += chunk.message.thinking
+      elif chunk.message.content:
+        if in_thinking:
+          in_thinking = False
+          print('\n\nAnswer:\n', end='', flush=True)
+        print(chunk.message.content, end='', flush=True)
+        # accumulate the partial content
+        content += chunk.message.content
+
+    # append the accumulated fields to the messages for the next request
+    new_messages = [{'role': 'assistant', 'thinking': thinking, 'content': content}]
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    import ollama from 'ollama'
+
+    async function main() {
+      const stream = await ollama.chat({
+        model: 'qwen3',
+        messages: [{ role: 'user', content: 'What is 17 × 23?' }],
+        stream: true,
+      })
+
+      let inThinking = false
+      let content = ''
+      let thinking = ''
+
+      for await (const chunk of stream) {
+        if (chunk.message.thinking) {
+          if (!inThinking) {
+            inThinking = true
+            process.stdout.write('Thinking:\n')
+          }
+          process.stdout.write(chunk.message.thinking)
+          // accumulate the partial thinking
+          thinking += chunk.message.thinking
+        } else if (chunk.message.content) {
+          if (inThinking) {
+            inThinking = false
+            process.stdout.write('\n\nAnswer:\n')
+          }
+          process.stdout.write(chunk.message.content)
+          // accumulate the partial content
+          content += chunk.message.content
+        }
+      }
+
+      // append the accumulated fields to the messages for the next request
+      const newMessages = [{ role: 'assistant', thinking, content }]
+    }
+
+    main().catch(console.error)
+    ```
+  </Tab>
+</Tabs>
+
+## Streaming with tool calling
+
+When streaming with tool calls, accumulate all chunks of `thinking`, `content`, and `tool_calls`, then return those fields together with any tool results in the follow-up request.
+
+See the [Tool Calling - Streaming](/features/tool-calling#tool-calling-with-streaming) section for detailed examples.
+
+## Response format
+
+Each streamed chunk is a JSON object with the following structure:
+
+```json
+{
+  "model": "llama3.2",
+  "created_at": "2024-12-09T21:07:55.186497Z",
+  "message": {
+    "role": "assistant",
+    "content": "The sky",
+    "thinking": ""
+  },
+  "done": false
+}
+```
+
+The final chunk includes performance metrics:
+
+```json
+{
+  "model": "llama3.2",
+  "created_at": "2024-12-09T21:07:55.186497Z",
+  "message": {
+    "role": "assistant",
+    "content": ""
+  },
+  "done": true,
+  "total_duration": 4648158584,
+  "load_duration": 4071084,
+  "prompt_eval_count": 26,
+  "prompt_eval_duration": 107345000,
+  "eval_count": 298,
+  "eval_duration": 4289432000
+}
+```
+
+## Performance metrics
+
+The final chunk includes useful metrics:
+
+- `total_duration`: Total time spent generating the response (nanoseconds)
+- `load_duration`: Time spent loading the model (nanoseconds)
+- `prompt_eval_count`: Number of tokens in the prompt
+- `prompt_eval_duration`: Time spent evaluating the prompt (nanoseconds)
+- `eval_count`: Number of tokens in the response
+- `eval_duration`: Time spent generating the response (nanoseconds)
+
+**Calculate tokens per second:**
+
+```python
+tokens_per_second = eval_count / (eval_duration / 1_000_000_000)
+```
+
+## Tips
+
+- Streaming is ideal for interactive applications where users want to see responses immediately
+- Always accumulate partial fields when working with thinking models or tool calling
+- Use non-streaming mode (`stream: false`) for batch processing or when you need the complete response at once
+- Buffer chunks appropriately to avoid overwhelming the UI with rapid updates

@@ -1,80 +1,364 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart Guide
+description: Get up and running with Ollama in minutes
 ---
 
-## Get started in three steps
+# Quickstart Guide
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+Get started with Ollama and run your first large language model locally in just a few minutes.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  This guide assumes you have already installed Ollama. If not, see the [Installation Guide](/installation) first.
 </Note>
+
+## Your First Model
+
+<Steps>
+  <Step title="Run Ollama">
+    The simplest way to get started is to run a model directly:
+    
+    ```bash
+    ollama run gemma3
+    ```
+    
+    This command will:
+    - Download the Gemma 3 model (if not already downloaded)
+    - Start the Ollama server (if not already running)
+    - Begin an interactive chat session
+    
+    <Note>
+      On first run, the model will be downloaded. This may take a few minutes depending on your internet connection.
+    </Note>
+  </Step>
+
+  <Step title="Chat with the Model">
+    Once the model is loaded, you'll see a prompt:
+    
+    ```
+    >>> Send a message (/? for help)
+    ```
+    
+    Try asking a question:
+    
+    ```
+    >>> Why is the sky blue?
+    ```
+    
+    The model will stream its response in real-time.
+    
+    <Tip>
+      Type `/help` to see all available chat commands, or press `Ctrl+D` to exit.
+    </Tip>
+  </Step>
+
+  <Step title="Try Other Models">
+    Explore different models from the library:
+    
+    ```bash
+    # Run Llama 3.2 (Meta's model)
+    ollama run llama3.2
+    
+    # Run Mistral (efficient and fast)
+    ollama run mistral
+    
+    # Run Phi-3 (Microsoft's compact model)
+    ollama run phi3
+    ```
+    
+    [Browse all available models →](https://ollama.com/library)
+  </Step>
+</Steps>
+
+## Using the REST API
+
+Ollama provides a REST API server that runs on `http://localhost:11434` by default.
+
+### Generate a Response
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:11434/api/generate -d '{
+  "model": "gemma3",
+  "prompt": "Why is the sky blue?"
+}'
+```
+
+```python Python
+import ollama
+
+response = ollama.generate(
+  model='gemma3',
+  prompt='Why is the sky blue?'
+)
+print(response['response'])
+```
+
+```javascript JavaScript
+import ollama from 'ollama';
+
+const response = await ollama.generate({
+  model: 'gemma3',
+  prompt: 'Why is the sky blue?'
+});
+console.log(response.response);
+```
+
+</CodeGroup>
+
+### Chat with Context
+
+Maintain conversation history:
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:11434/api/chat -d '{
+  "model": "gemma3",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Why is the sky blue?"
+    }
+  ],
+  "stream": false
+}'
+```
+
+```python Python
+from ollama import chat
+
+response = chat(model='gemma3', messages=[
+  {
+    'role': 'user',
+    'content': 'Why is the sky blue?',
+  },
+])
+print(response.message.content)
+```
+
+```javascript JavaScript
+import ollama from 'ollama';
+
+const response = await ollama.chat({
+  model: 'gemma3',
+  messages: [{ role: 'user', content: 'Why is the sky blue?' }],
+});
+console.log(response.message.content);
+```
+
+</CodeGroup>
+
+## Essential Commands
+
+### List Downloaded Models
+
+```bash
+ollama list
+```
+
+Output:
+```
+NAME              ID            SIZE      MODIFIED
+gemma3:latest     a80c4f17acd5  2.0 GB    2 hours ago
+llama3.2:latest   0a8c26691023  4.7 GB    1 day ago
+```
+
+### Pull a Model
+
+Download a model without running it:
+
+```bash
+ollama pull mistral
+```
+
+### Remove a Model
+
+Free up disk space:
+
+```bash
+ollama rm mistral
+```
+
+### Check Running Models
+
+See which models are currently loaded in memory:
+
+```bash
+ollama ps
+```
+
+Output:
+```
+NAME              ID            SIZE      PROCESSOR    CONTEXT    UNTIL
+gemma3:latest     a80c4f17acd5  2.0 GB    100% GPU     4096       4 minutes from now
+```
+
+## Multimodal Models
+
+Some models can process images along with text:
+
+```bash
+ollama run llava "What's in this image? /path/to/image.jpg"
+```
+
+Or via the API:
+
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "llava",
+  "prompt": "What is in this image?",
+  "images": ["base64_encoded_image_data"]
+}'
+```
+
+## Non-Interactive Mode
+
+Run one-off prompts without entering chat mode:
+
+```bash
+# Single prompt
+ollama run gemma3 "Explain quantum computing in simple terms"
+
+# Pipe input
+echo "Write a haiku about programming" | ollama run gemma3
+
+# Save output
+ollama run gemma3 "Generate a Python function" > output.py
+```
+
+## Model Options
+
+Customize model behavior with options:
+
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "gemma3",
+  "prompt": "Tell me a story",
+  "options": {
+    "temperature": 0.8,
+    "top_p": 0.9,
+    "seed": 42
+  }
+}'
+```
+
+<Accordion title="Common Options">
+  - `temperature` (0.0-2.0): Controls randomness (default: 0.8)
+  - `top_p` (0.0-1.0): Nucleus sampling threshold (default: 0.9)
+  - `seed`: Set for reproducible outputs
+  - `num_predict`: Maximum tokens to generate
+  - `stop`: Custom stop sequences
+</Accordion>
+
+## Keep Alive
+
+Control how long models stay in memory:
+
+```bash
+# Keep loaded for 10 minutes
+ollama run gemma3 --keepalive 10m
+
+# Unload immediately after use
+ollama run gemma3 --keepalive 0
+
+# Keep loaded indefinitely
+ollama run gemma3 --keepalive -1
+```
+
+Default is 5 minutes after last use.
+
+## Server Management
+
+### Start the Server
+
+The server starts automatically when you run a model, but you can start it manually:
+
+```bash
+ollama serve
+```
+
+The server runs on `http://localhost:11434` by default.
+
+### Environment Variables
+
+<Accordion title="Common Environment Variables">
+  - `OLLAMA_HOST`: Change the bind address (default: 127.0.0.1:11434)
+  - `OLLAMA_MODELS`: Custom model storage location
+  - `OLLAMA_NUM_PARALLEL`: Number of parallel requests (default: 1)
+  - `OLLAMA_MAX_LOADED_MODELS`: Max models in memory (default: 1)
+  - `OLLAMA_DEBUG`: Enable debug logging
+</Accordion>
+
+Example:
+```bash
+export OLLAMA_HOST=0.0.0.0:11434
+ollama serve
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Model download is slow">
+    Model sizes range from 2GB to 70GB+. Use a wired connection for faster downloads. You can resume interrupted downloads by running the same command again.
+  </Accordion>
+  
+  <Accordion title="Out of memory errors">
+    Try a smaller quantized model:
+    - Use `gemma3:2b` instead of `gemma3:8b`
+    - Use Q4 quantization: `llama3.2:3b-q4_0`
+    - Reduce context size with `num_ctx` option
+  </Accordion>
+  
+  <Accordion title="Connection refused">
+    The server may not be running:
+    ```bash
+    ollama serve
+    ```
+    Or check if another process is using port 11434.
+  </Accordion>
+  
+  <Accordion title="GPU not detected">
+    On Linux, ensure NVIDIA drivers are installed. On macOS, Metal should work automatically. Check with:
+    ```bash
+    ollama run gemma3 --verbose
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card
+    title="Create Custom Models"
+    icon="palette"
+    href="/modelfile"
+  >
+    Customize models with system prompts and parameters
+  </Card>
+  <Card
+    title="API Reference"
+    icon="code"
+    href="/api"
+  >
+    Complete REST API documentation
+  </Card>
+  <Card
+    title="Import Models"
+    icon="file-import"
+    href="/import"
+  >
+    Import models from PyTorch or Safetensors
+  </Card>
+  <Card
+    title="CLI Reference"
+    icon="terminal"
+    href="/cli"
+  >
+    Complete command-line documentation
+  </Card>
+</CardGroup>
+
+<Tip>
+  Join the [Discord community](https://discord.gg/ollama) for help and to share your projects!
+</Tip>

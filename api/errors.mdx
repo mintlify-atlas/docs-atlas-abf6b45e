@@ -1,0 +1,568 @@
+---
+title: 'Error Handling'
+description: 'Understand Ollama API error codes, status errors, and how to handle failures gracefully'
+---
+
+## Overview
+
+Ollama's API uses standard HTTP status codes and structured error responses to communicate failures. All errors follow a consistent format that includes both the HTTP status code and a descriptive error message.
+
+## Error Response Format
+
+From `api/types.go:22-41`, errors are returned as `StatusError` objects:
+
+```go
+type StatusError struct {
+    StatusCode   int
+    Status       string
+    ErrorMessage string `json:"error"`
+}
+```
+
+### JSON Response
+
+```json
+{
+  "error": "model 'llama3.2' not found"
+}
+```
+
+### Error String Format
+
+When converted to a string, errors follow this pattern:
+```
+404 Not Found: model 'llama3.2' not found
+```
+
+## HTTP Status Codes
+
+### 400 Bad Request
+
+Invalid request parameters or malformed input.
+
+<Accordion title="Common 400 Errors">
+
+**Missing request body:**
+```json
+{
+  "error": "missing request body"
+}
+```
+
+**Invalid JSON:**
+```json
+{
+  "error": "invalid character '}' looking for beginning of value"
+}
+```
+
+**Parameter validation:**
+```json
+{
+  "error": "top_logprobs must be between 0 and 20"
+}
+```
+
+**Model capability errors:**
+```json
+{
+  "error": "llama3.2 does not support generate"
+}
+```
+
+**Invalid options:**
+```json
+{
+  "error": "raw mode does not support template, system, or context"
+}
+```
+
+</Accordion>
+
+### 401 Unauthorized
+
+Authentication required or invalid credentials. From `api/types.go:43-54`:
+
+```go
+type AuthorizationError struct {
+    StatusCode int
+    Status     string
+    SigninURL  string `json:"signin_url"`
+}
+```
+
+**Response:**
+```json
+{
+  "error": "unauthorized",
+  "signin_url": "https://ollama.com/connect?name=hostname&key=publickey"
+}
+```
+
+<Note>
+Authorization is only required when connecting to remote Ollama instances or ollama.com.
+</Note>
+
+### 403 Forbidden
+
+Request understood but not allowed (e.g., cloud features disabled).
+
+```json
+{
+  "error": "remote model is unavailable"
+}
+```
+
+### 404 Not Found
+
+Requested resource doesn't exist.
+
+<Accordion title="Common 404 Errors">
+
+**Model not found:**
+```json
+{
+  "error": "model 'llama3.2' not found"
+}
+```
+
+**Blob not found:**
+```json
+{
+  "error": "blob not found"
+}
+```
+
+</Accordion>
+
+### 500 Internal Server Error
+
+Server-side error during processing.
+
+<Accordion title="Common 500 Errors">
+
+**Template rendering:**
+```json
+{
+  "error": "template: undefined function \"invalid\""
+}
+```
+
+**Model loading:**
+```json
+{
+  "error": "failed to load model: out of memory"
+}
+```
+
+**Tokenization:**
+```json
+{
+  "error": "failed to tokenize prompt"
+}
+```
+
+</Accordion>
+
+## Error Handling by Endpoint
+
+### Generate Endpoint
+
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "nonexistent",
+  "prompt": "Hello"
+}'
+```
+
+**Response (404):**
+```json
+{
+  "error": "model 'nonexistent' not found"
+}
+```
+
+### Chat Endpoint
+
+```bash
+curl http://localhost:11434/api/chat -d '{
+  "model": "llama3.2",
+  "messages": []
+}'
+```
+
+**No error** - loads the model without generating.
+
+### Embed Endpoint
+
+```bash
+curl http://localhost:11434/api/embed -d '{
+  "model": "llama3.2",
+  "input": 123
+}'
+```
+
+**Response (400):**
+```json
+{
+  "error": "invalid input type"
+}
+```
+
+## Client Error Handling
+
+### Go Client
+
+From `api/client.go:43-63`, the client automatically wraps errors:
+
+```go
+package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"github.com/ollama/ollama/api"
+)
+
+func main() {
+	client, _ := api.ClientFromEnvironment()
+	
+	req := &api.GenerateRequest{
+		Model:  "llama3.2",
+		Prompt: "Hello",
+	}
+	
+	err := client.Generate(context.Background(), req, func(resp api.GenerateResponse) error {
+		fmt.Print(resp.Response)
+		return nil
+	})
+	
+	if err != nil {
+		// Check for specific error types
+		var statusErr api.StatusError
+		if errors.As(err, &statusErr) {
+			switch statusErr.StatusCode {
+			case http.StatusNotFound:
+				fmt.Println("Model not found. Try: ollama pull llama3.2")
+			case http.StatusBadRequest:
+				fmt.Println("Invalid request:", statusErr.ErrorMessage)
+			case http.StatusInternalServerError:
+				fmt.Println("Server error:", statusErr.ErrorMessage)
+			default:
+				fmt.Printf("Error %d: %s\n", statusErr.StatusCode, statusErr.ErrorMessage)
+			}
+			return
+		}
+		
+		var authErr api.AuthorizationError
+		if errors.As(err, &authErr) {
+			fmt.Println("Unauthorized. Sign in at:", authErr.SigninURL)
+			return
+		}
+		
+		// Generic error
+		fmt.Println("Error:", err)
+	}
+}
+```
+
+### Python Client
+
+```python
+import requests
+import json
+from typing import Optional
+
+class OllamaError(Exception):
+    """Base exception for Ollama errors"""
+    def __init__(self, status_code: int, message: str):
+        self.status_code = status_code
+        self.message = message
+        super().__init__(f"{status_code}: {message}")
+
+class ModelNotFoundError(OllamaError):
+    """Model doesn't exist"""
+    pass
+
+class BadRequestError(OllamaError):
+    """Invalid request parameters"""
+    pass
+
+class UnauthorizedError(OllamaError):
+    """Authentication required"""
+    def __init__(self, status_code: int, message: str, signin_url: Optional[str] = None):
+        super().__init__(status_code, message)
+        self.signin_url = signin_url
+
+def generate(model: str, prompt: str, **kwargs):
+    url = "http://localhost:11434/api/generate"
+    data = {"model": model, "prompt": prompt, **kwargs}
+    
+    try:
+        response = requests.post(url, json=data, stream=True)
+        
+        # Check for HTTP errors
+        if response.status_code == 404:
+            error_data = response.json()
+            raise ModelNotFoundError(404, error_data.get('error', 'Model not found'))
+        elif response.status_code == 400:
+            error_data = response.json()
+            raise BadRequestError(400, error_data.get('error', 'Bad request'))
+        elif response.status_code == 401:
+            error_data = response.json()
+            raise UnauthorizedError(
+                401,
+                error_data.get('error', 'Unauthorized'),
+                error_data.get('signin_url')
+            )
+        elif response.status_code >= 400:
+            error_data = response.json()
+            raise OllamaError(response.status_code, error_data.get('error', 'Unknown error'))
+        
+        # Process streaming response
+        for line in response.iter_lines():
+            if line:
+                chunk = json.loads(line)
+                
+                # Check for errors in stream
+                if 'error' in chunk:
+                    raise OllamaError(500, chunk['error'])
+                
+                yield chunk
+                
+    except requests.RequestException as e:
+        raise OllamaError(500, f"Network error: {str(e)}")
+
+# Usage
+try:
+    for chunk in generate('llama3.2', 'Hello', stream=True):
+        print(chunk['response'], end='', flush=True)
+except ModelNotFoundError as e:
+    print(f"\nModel not found: {e.message}")
+    print("Try: ollama pull llama3.2")
+except BadRequestError as e:
+    print(f"\nBad request: {e.message}")
+except UnauthorizedError as e:
+    print(f"\nUnauthorized: {e.message}")
+    if e.signin_url:
+        print(f"Sign in at: {e.signin_url}")
+except OllamaError as e:
+    print(f"\nError {e.status_code}: {e.message}")
+```
+
+### JavaScript/TypeScript Client
+
+```typescript
+interface OllamaError {
+  status: number;
+  message: string;
+  signin_url?: string;
+}
+
+class OllamaClient {
+  constructor(private baseUrl: string = 'http://localhost:11434') {}
+
+  async generate(model: string, prompt: string, options = {}) {
+    const response = await fetch(`${this.baseUrl}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, prompt, ...options })
+    });
+
+    if (!response.ok) {
+      const error: OllamaError = await response.json();
+      
+      switch (response.status) {
+        case 404:
+          throw new Error(`Model not found: ${error.message}`);
+        case 400:
+          throw new Error(`Bad request: ${error.message}`);
+        case 401:
+          throw new Error(`Unauthorized: ${error.message}${error.signin_url ? ` - Sign in at: ${error.signin_url}` : ''}`);
+        case 500:
+          throw new Error(`Server error: ${error.message}`);
+        default:
+          throw new Error(`Error ${response.status}: ${error.message}`);
+      }
+    }
+
+    return response;
+  }
+}
+
+// Usage
+const client = new OllamaClient();
+
+try {
+  const response = await client.generate('llama3.2', 'Hello');
+  const reader = response.body?.getReader();
+  // Process stream...
+} catch (error) {
+  console.error('Error:', error.message);
+}
+```
+
+## Streaming Errors
+
+Errors can occur during streaming after the connection is established. From `api/client.go:217-260`:
+
+```json
+{"model":"llama3.2","response":"The sky","done":false}
+{"error":"context length exceeded"}
+```
+
+<Warning>
+When streaming, always check each chunk for the `error` field, not just the HTTP status code.
+</Warning>
+
+```python
+for line in response.iter_lines():
+    if line:
+        chunk = json.loads(line)
+        
+        # Check for errors in the stream
+        if 'error' in chunk:
+            print(f"Error during generation: {chunk['error']}")
+            break
+        
+        print(chunk.get('response', ''), end='', flush=True)
+```
+
+## Common Error Scenarios
+
+### Model Not Downloaded
+
+**Error:**
+```json
+{
+  "error": "model 'llama3.2' not found"
+}
+```
+
+**Solution:**
+```bash
+ollama pull llama3.2
+```
+
+### Context Length Exceeded
+
+**Error:**
+```json
+{
+  "error": "prompt size exceeds context length"
+}
+```
+
+**Solutions:**
+1. Reduce prompt size
+2. Enable truncation: `"truncate": true`
+3. Increase context: `"options": {"num_ctx": 8192}`
+
+### Out of Memory
+
+**Error:**
+```json
+{
+  "error": "failed to load model: out of memory"
+}
+```
+
+**Solutions:**
+1. Use a smaller model or quantized version
+2. Reduce `num_gpu` layers
+3. Close other applications
+4. Increase system swap space
+
+### Invalid Model Capability
+
+**Error:**
+```json
+{
+  "error": "llama3.2 does not support generate"
+}
+```
+
+**Solution:**
+Use the `/api/chat` endpoint instead for chat-tuned models.
+
+### Connection Refused
+
+**Error:**
+```
+connection refused
+```
+
+**Solutions:**
+1. Start Ollama server: `ollama serve`
+2. Check server address: `http://localhost:11434`
+3. Verify firewall settings
+
+## Error Code Reference
+
+| Code | Name | Description | Common Causes |
+|------|------|-------------|---------------|
+| 400 | Bad Request | Invalid request format or parameters | Missing fields, invalid JSON, parameter validation |
+| 401 | Unauthorized | Authentication required | Missing/invalid credentials for remote models |
+| 403 | Forbidden | Request not allowed | Cloud features disabled, insufficient permissions |
+| 404 | Not Found | Resource doesn't exist | Model not downloaded, invalid blob digest |
+| 500 | Internal Server Error | Server processing error | Model loading failure, template errors, OOM |
+
+## Debugging Tips
+
+<Tip>
+Enable verbose logging in Ollama server for detailed error context:
+```bash
+OLLAMA_DEBUG=1 ollama serve
+```
+</Tip>
+
+### Check Server Logs
+
+On Linux/macOS:
+```bash
+journalctl -u ollama -f
+```
+
+On Windows:
+```powershell
+Get-EventLog -LogName Application -Source Ollama -Newest 50
+```
+
+### Test Connectivity
+
+```bash
+curl http://localhost:11434/api/version
+```
+
+Expected:
+```json
+{
+  "version": "0.5.1"
+}
+```
+
+### Validate Model Existence
+
+```bash
+curl http://localhost:11434/api/tags
+```
+
+Lists all available models.
+
+## Best Practices
+
+1. **Always check HTTP status codes** before parsing response body
+2. **Handle streaming errors** by checking each chunk for `error` field
+3. **Provide helpful error messages** to users with actionable solutions
+4. **Implement retry logic** for transient errors (with exponential backoff)
+5. **Log errors with context** including request parameters for debugging
+6. **Validate inputs client-side** before sending to reduce 400 errors
+7. **Pre-check model availability** before making generation requests
+
+## Related Resources
+
+- [Streaming Responses](/api/streaming) - Handle errors in streaming contexts
+- [Usage Metrics](/api/usage) - Monitor performance alongside error rates
+- [API Reference](/api/generate) - Full endpoint documentation

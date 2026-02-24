@@ -1,0 +1,336 @@
+---
+title: 'POST /api/chat'
+description: 'Generate a chat completion with conversational context'
+---
+
+Generate the next message in a chat with a provided model. This endpoint supports streaming responses and maintains conversation history through messages.
+
+## Request
+
+### Endpoint
+
+```
+POST /api/chat
+```
+
+### Request Body
+
+<ParamField path="model" type="string" required>
+  The model name to use for chat completion (e.g., `llama3.2`, `mistral`)
+</ParamField>
+
+<ParamField path="messages" type="array" required>
+  Array of message objects representing the conversation history
+  
+  <Expandable title="Message Object">
+    <ParamField path="role" type="string" required>
+      Role of the message sender: `system`, `user`, or `assistant`
+    </ParamField>
+    
+    <ParamField path="content" type="string" required>
+      The content of the message
+    </ParamField>
+    
+    <ParamField path="images" type="array">
+      Optional array of base64-encoded images (for multimodal models)
+    </ParamField>
+    
+    <ParamField path="tool_calls" type="array">
+      Tool calls made by the assistant
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="stream" type="boolean" default="true">
+  Enable streaming of response chunks. Set to `false` to wait for the complete response.
+</ParamField>
+
+<ParamField path="format" type="string | object">
+  Format to return response in. Use `"json"` for JSON mode or provide a JSON schema object.
+</ParamField>
+
+<ParamField path="options" type="object">
+  Model-specific options to customize inference behavior
+  
+  <Expandable title="Common Options">
+    <ParamField path="temperature" type="float" default="0.8">
+      Controls randomness in generation (0.0 to 2.0)
+    </ParamField>
+    
+    <ParamField path="top_k" type="integer" default="40">
+      Limits token selection to top K most likely tokens
+    </ParamField>
+    
+    <ParamField path="top_p" type="float" default="0.9">
+      Nucleus sampling threshold
+    </ParamField>
+    
+    <ParamField path="num_predict" type="integer" default="-1">
+      Maximum number of tokens to predict (-1 for unlimited)
+    </ParamField>
+    
+    <ParamField path="seed" type="integer" default="-1">
+      Random seed for reproducible generation
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="keep_alive" type="string | number" default="5m">
+  Duration to keep the model loaded in memory (e.g., `"5m"`, `"1h"`, or `-1` for indefinite)
+</ParamField>
+
+<ParamField path="tools" type="array">
+  List of tools the model can use for function calling
+</ParamField>
+
+<ParamField path="think" type="boolean | string">
+  Enable thinking mode for reasoning models. Can be `true`/`false` or `"high"`, `"medium"`, `"low"`
+</ParamField>
+
+<ParamField path="truncate" type="boolean" default="true">
+  Truncate chat history if prompt exceeds context length
+</ParamField>
+
+<ParamField path="shift" type="boolean" default="true">
+  Shift chat history when hitting context length instead of erroring
+</ParamField>
+
+<ParamField path="logprobs" type="boolean" default="false">
+  Return log probabilities for output tokens
+</ParamField>
+
+<ParamField path="top_logprobs" type="integer" default="0">
+  Number of most likely tokens to return at each position (0-20). Requires `logprobs: true`
+</ParamField>
+
+## Response
+
+### Response Fields
+
+<ResponseField name="model" type="string">
+  The model name used for generation
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  Timestamp of when the response was created (ISO 8601 format)
+</ResponseField>
+
+<ResponseField name="message" type="object">
+  The generated message
+  
+  <Expandable title="Message Object">
+    <ResponseField name="role" type="string">
+      Role of the message (typically `assistant`)
+    </ResponseField>
+    
+    <ResponseField name="content" type="string">
+      The generated text content
+    </ResponseField>
+    
+    <ResponseField name="thinking" type="string">
+      Reasoning content when `think` mode is enabled
+    </ResponseField>
+    
+    <ResponseField name="tool_calls" type="array">
+      Tool calls requested by the model
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="done" type="boolean">
+  Whether the response is complete
+</ResponseField>
+
+<ResponseField name="done_reason" type="string">
+  Reason for completion: `stop`, `length`, `load`, `unload`
+</ResponseField>
+
+<ResponseField name="total_duration" type="integer">
+  Total time spent generating response (nanoseconds)
+</ResponseField>
+
+<ResponseField name="load_duration" type="integer">
+  Time spent loading the model (nanoseconds)
+</ResponseField>
+
+<ResponseField name="prompt_eval_count" type="integer">
+  Number of tokens in the prompt
+</ResponseField>
+
+<ResponseField name="prompt_eval_duration" type="integer">
+  Time spent evaluating the prompt (nanoseconds)
+</ResponseField>
+
+<ResponseField name="eval_count" type="integer">
+  Number of tokens generated
+</ResponseField>
+
+<ResponseField name="eval_duration" type="integer">
+  Time spent generating response (nanoseconds)
+</ResponseField>
+
+<ResponseField name="logprobs" type="array">
+  Log probability information for each token (when `logprobs: true`)
+</ResponseField>
+
+## Examples
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:11434/api/chat -d '{
+  "model": "llama3.2",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Why is the sky blue?"
+    }
+  ],
+  "stream": false
+}'
+```
+
+```python Python
+import requests
+import json
+
+response = requests.post(
+    'http://localhost:11434/api/chat',
+    json={
+        'model': 'llama3.2',
+        'messages': [
+            {
+                'role': 'user',
+                'content': 'Why is the sky blue?'
+            }
+        ],
+        'stream': False
+    }
+)
+
+print(response.json())
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:11434/api/chat', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    model: 'llama3.2',
+    messages: [
+      {
+        role: 'user',
+        content: 'Why is the sky blue?'
+      }
+    ],
+    stream: false
+  })
+});
+
+const data = await response.json();
+console.log(data);
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "model": "llama3.2",
+  "created_at": "2024-02-24T12:34:56.789Z",
+  "message": {
+    "role": "assistant",
+    "content": "The sky appears blue due to Rayleigh scattering..."
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 5432109876,
+  "load_duration": 123456789,
+  "prompt_eval_count": 26,
+  "prompt_eval_duration": 987654321,
+  "eval_count": 298,
+  "eval_duration": 4321098765
+}
+```
+
+## Streaming Example
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:11434/api/chat -d '{
+  "model": "llama3.2",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Tell me a story"
+    }
+  ]
+}'
+```
+
+```python Python
+import requests
+import json
+
+response = requests.post(
+    'http://localhost:11434/api/chat',
+    json={
+        'model': 'llama3.2',
+        'messages': [
+            {'role': 'user', 'content': 'Tell me a story'}
+        ]
+    },
+    stream=True
+)
+
+for line in response.iter_lines():
+    if line:
+        chunk = json.loads(line)
+        print(chunk['message']['content'], end='', flush=True)
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:11434/api/chat', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'llama3.2',
+    messages: [
+      { role: 'user', content: 'Tell me a story' }
+    ]
+  })
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const chunk = JSON.parse(decoder.decode(value));
+  process.stdout.write(chunk.message.content);
+}
+```
+
+</CodeGroup>
+
+## Error Responses
+
+<ResponseField name="error" type="string">
+  Error message describing what went wrong
+</ResponseField>
+
+### Common Errors
+
+- **400 Bad Request**: Invalid request body or model name
+- **404 Not Found**: Model not found (need to pull it first)
+- **500 Internal Server Error**: Server error during generation
+
+<Note>
+When streaming is disabled (`"stream": false`), the complete response is returned as a single JSON object. With streaming enabled (default), responses are sent as newline-delimited JSON (NDJSON).
+</Note>

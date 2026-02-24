@@ -1,0 +1,315 @@
+---
+title: Vision
+description: Use multimodal models to analyze images and answer questions about visual content.
+---
+
+Vision models accept images alongside text so the model can describe, classify, and answer questions about what it sees.
+
+## Quick start
+
+<Tabs>
+  <Tab title="CLI">
+    Pass image file paths directly in the CLI:
+
+    ```shell
+    ollama run gemma3 ./image.png "What's in this image?"
+    ```
+
+    Or use image URLs:
+
+    ```shell
+    ollama run gemma3 https://example.com/image.jpg "Describe this"
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```shell
+    # 1. Download a sample image
+    curl -L -o test.jpg "https://upload.wikimedia.org/wikipedia/commons/3/3a/Cat03.jpg"
+
+    # 2. Encode the image to base64
+    IMG=$(base64 < test.jpg | tr -d '\n')
+
+    # 3. Send it to Ollama
+    curl -X POST http://localhost:11434/api/chat \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "gemma3",
+        "messages": [{
+          "role": "user",
+          "content": "What is in this image?",
+          "images": ["'"$IMG"'"]
+        }],
+        "stream": false
+      }'
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from ollama import chat
+
+    # Pass in the path to the image
+    path = input('Please enter the path to the image: ')
+
+    # You can also pass in base64 encoded image data
+    # import base64
+    # from pathlib import Path
+    # img = base64.b64encode(Path(path).read_bytes()).decode()
+    # or the raw bytes
+    # img = Path(path).read_bytes()
+
+    response = chat(
+      model='gemma3',
+      messages=[
+        {
+          'role': 'user',
+          'content': 'What is in this image? Be concise.',
+          'images': [path],
+        }
+      ],
+    )
+
+    print(response.message.content)
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    import ollama from 'ollama'
+
+    const imagePath = '/absolute/path/to/image.jpg'
+    const response = await ollama.chat({
+      model: 'gemma3',
+      messages: [
+        { role: 'user', content: 'What is in this image?', images: [imagePath] }
+      ],
+      stream: false,
+    })
+
+    console.log(response.message.content)
+    ```
+  </Tab>
+</Tabs>
+
+## Supported vision models
+
+Many models in the Ollama library support vision capabilities:
+
+- [gemma3](https://ollama.com/library/gemma3) - Google's multimodal model
+- [llama3.2-vision](https://ollama.com/library/llama3.2-vision) - Meta's vision model
+- [llava](https://ollama.com/library/llava) - Popular open-source vision model
+- [qwen2.5-vl](https://ollama.com/library/qwen2.5-vl) - Alibaba's vision language model
+- [minicpm-v](https://ollama.com/library/minicpm-v) - Efficient vision model
+
+Browse all [vision models](https://ollama.com/search?c=vision) on Ollama.
+
+## Multiple images
+
+Some models support analyzing multiple images in a single request:
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from ollama import chat
+
+    response = chat(
+      model='gemma3',
+      messages=[
+        {
+          'role': 'user',
+          'content': 'What are the differences between these images?',
+          'images': ['./image1.jpg', './image2.jpg', './image3.jpg'],
+        }
+      ],
+    )
+
+    print(response.message.content)
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    import ollama from 'ollama'
+
+    const response = await ollama.chat({
+      model: 'gemma3',
+      messages: [
+        {
+          role: 'user',
+          content: 'What are the differences between these images?',
+          images: ['./image1.jpg', './image2.jpg', './image3.jpg']
+        }
+      ],
+    })
+
+    console.log(response.message.content)
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Some models like `llama3.2-vision` only support one image per request. Check the model's documentation for limitations.
+</Note>
+
+## Image formats
+
+Ollama supports multiple ways to provide images:
+
+### File paths (SDKs only)
+
+```python
+images=['/path/to/image.jpg']
+```
+
+### URLs (SDKs only)
+
+```python
+images=['https://example.com/image.jpg']
+```
+
+### Base64-encoded strings (All clients)
+
+```python
+import base64
+from pathlib import Path
+
+img_data = base64.b64encode(Path('image.jpg').read_bytes()).decode()
+images=[img_data]
+```
+
+### Raw bytes (Python SDK)
+
+```python
+from pathlib import Path
+
+img_data = Path('image.jpg').read_bytes()
+images=[img_data]
+```
+
+## Vision with chat history
+
+Maintain conversation context across multiple turns:
+
+```python
+from ollama import chat
+
+messages = [
+  {
+    'role': 'user',
+    'content': 'What is in this image?',
+    'images': ['./chart.png']
+  }
+]
+
+response = chat(model='gemma3', messages=messages)
+messages.append(response.message)
+
+# Follow-up question (no image needed)
+messages.append({
+  'role': 'user',
+  'content': 'What is the trend in the data?'
+})
+
+response = chat(model='gemma3', messages=messages)
+print(response.message.content)
+```
+
+## Vision with structured outputs
+
+Combine vision with JSON schema for structured image analysis:
+
+```python
+from ollama import chat
+from pydantic import BaseModel
+from typing import Literal, Optional
+
+class Object(BaseModel):
+  name: str
+  confidence: float
+  attributes: str
+
+class ImageDescription(BaseModel):
+  summary: str
+  objects: list[Object]
+  scene: str
+  colors: list[str]
+  time_of_day: Literal['Morning', 'Afternoon', 'Evening', 'Night']
+  setting: Literal['Indoor', 'Outdoor', 'Unknown']
+  text_content: Optional[str] = None
+
+response = chat(
+  model='gemma3',
+  messages=[{
+    'role': 'user',
+    'content': 'Describe this photo and list the objects you detect.',
+    'images': ['path/to/image.jpg'],
+  }],
+  format=ImageDescription.model_json_schema(),
+  options={'temperature': 0},
+)
+
+image_description = ImageDescription.model_validate_json(response.message.content)
+print(image_description)
+```
+
+See [Structured Outputs](/features/structured-outputs) for more details.
+
+## Common use cases
+
+### Image captioning
+
+```python
+response = chat(
+  model='gemma3',
+  messages=[{
+    'role': 'user',
+    'content': 'Write a brief caption for this image.',
+    'images': ['./photo.jpg']
+  }]
+)
+```
+
+### OCR (Text extraction)
+
+```python
+response = chat(
+  model='gemma3',
+  messages=[{
+    'role': 'user',
+    'content': 'Extract all text from this image.',
+    'images': ['./document.png']
+  }]
+)
+```
+
+### Visual question answering
+
+```python
+response = chat(
+  model='gemma3',
+  messages=[{
+    'role': 'user',
+    'content': 'How many people are in this image? What are they doing?',
+    'images': ['./group_photo.jpg']
+  }]
+)
+```
+
+### Image comparison
+
+```python
+response = chat(
+  model='gemma3',
+  messages=[{
+    'role': 'user',
+    'content': 'What changed between these two images?',
+    'images': ['./before.jpg', './after.jpg']
+  }]
+)
+```
+
+## Tips
+
+- Use clear, specific prompts for better results
+- Provide high-quality images when possible (but models can handle various resolutions)
+- For OCR tasks, ensure text is clearly visible in the image
+- Use structured outputs for consistent, parseable results
+- Set `temperature: 0` in options for more deterministic responses
+- Consider using multiple images when comparing or analyzing relationships

@@ -1,0 +1,348 @@
+---
+title: 'ollama rm'
+description: 'Remove one or more models from your local library'
+icon: 'trash'
+---
+
+## Synopsis
+
+```bash
+ollama rm MODEL [MODEL...]
+```
+
+## Description
+
+The `rm` command permanently deletes models from your local library, freeing up disk space. This removes:
+- Model weights
+- Configuration files
+- Metadata
+- All associated files
+
+You can remove multiple models in a single command.
+
+<Warning>
+**This action is irreversible**. Once removed, you'll need to pull or create the model again to use it.
+</Warning>
+
+## Arguments
+
+<ParamField path="MODEL" type="string" required>
+  Name(s) of the model(s) to remove. Multiple models can be specified separated by spaces.
+  
+  Examples:
+  - `ollama rm llama3.2`
+  - `ollama rm mistral:7b codellama:13b`
+  - `ollama rm myusername/custom-model:v1`
+</ParamField>
+
+## Options
+
+The `rm` command has no flags or options.
+
+## Examples
+
+### Remove a Single Model
+
+Delete one model:
+
+```bash
+ollama rm llama3.2
+```
+
+Output:
+```
+deleted 'llama3.2'
+```
+
+### Remove Multiple Models
+
+Delete several models at once:
+
+```bash
+ollama rm llama3.2 mistral:7b codellama
+```
+
+Output:
+```
+deleted 'llama3.2'
+deleted 'mistral:7b'
+deleted 'codellama'
+```
+
+### Remove Specific Tag
+
+Remove a specific version:
+
+```bash
+ollama rm llama3.2:8b
+```
+
+This removes only the `8b` variant, leaving other tags like `:latest` or `:13b` intact.
+
+### Remove Custom Model
+
+Delete a model you created:
+
+```bash
+ollama rm myusername/custom-assistant
+```
+
+## Before Removing
+
+### Check Model Details
+
+Review model information before deleting:
+
+```bash
+ollama show llama3.2
+```
+
+### List All Models
+
+See what's available:
+
+```bash
+ollama list
+```
+
+### Check Disk Space
+
+See how much space you'll free:
+
+```bash
+ollama list | grep llama3.2
+```
+
+Output:
+```
+llama3.2:latest    8934d96d3f08    4.7 GB    2 hours ago
+```
+
+## Automatic Stop
+
+If the model is currently running, it will be stopped automatically before removal:
+
+```bash
+# Model is running
+ollama ps
+# NAME              ID          SIZE     PROCESSOR    CONTEXT    UNTIL
+# llama3.2:latest   8934d96d    4.7 GB   100% GPU     2048       4 minutes
+
+# Remove it (stops first, then deletes)
+ollama rm llama3.2
+
+# Verify it's gone
+ollama list
+```
+
+## Disk Space Recovery
+
+Check disk space before and after:
+
+```bash
+# Check current usage
+du -sh ~/.ollama/models
+
+# Remove models
+ollama rm large-model-1 large-model-2
+
+# Check new usage
+du -sh ~/.ollama/models
+```
+
+## Scripting Usage
+
+Use in scripts and automation:
+
+```bash
+# Remove all models starting with "test-"
+for model in $(ollama list | grep "^test-" | awk '{print $1}'); do
+    ollama rm "$model"
+done
+
+# Remove old models (example: keep only latest)
+ollama list | grep -v ":latest" | tail -n +2 | awk '{print $1}' | xargs -r ollama rm
+
+# Remove model with confirmation
+read -p "Remove llama3.2? (y/n) " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    ollama rm llama3.2
+fi
+
+# Remove only if it exists
+if ollama list | grep -q "llama3.2"; then
+    ollama rm llama3.2
+fi
+```
+
+## Cleanup Patterns
+
+### Remove Old Versions
+
+Keep only the latest version of each model:
+
+```bash
+# Remove specific old versions
+ollama rm llama3.2:8b-v1 llama3.2:8b-v2
+
+# Keep only :latest
+ollama list llama3.2 | grep -v ":latest" | awk '{print $1}' | xargs -r ollama rm
+```
+
+### Remove Test Models
+
+Clean up experimental models:
+
+```bash
+# Remove all models with "test" in the name
+ollama list | grep "test" | awk '{print $1}' | xargs -r ollama rm
+```
+
+### Free Up Space
+
+Remove largest models:
+
+```bash
+# List models by size
+ollama list | tail -n +2 | sort -h -k3
+
+# Remove largest ones
+ollama rm huge-model-1 huge-model-2
+```
+
+## Recovery
+
+Once removed, models can be recovered by:
+
+### Re-pulling from Registry
+
+```bash
+# Remove
+ollama rm llama3.2
+
+# Later, pull it back
+ollama pull llama3.2
+```
+
+### Re-creating from Modelfile
+
+```bash
+# Remove custom model
+ollama rm my-custom-model
+
+# Later, recreate it
+ollama create my-custom-model -f Modelfile
+```
+
+<Note>
+Re-creating a model requires the original Modelfile and any referenced files (adapters, weights, etc.).
+</Note>
+
+## Storage Location
+
+Models are removed from:
+- **Linux/macOS**: `~/.ollama/models`
+- **Windows**: `%USERPROFILE%\.ollama\models`
+- **Custom**: `$OLLAMA_MODELS`
+
+## Environment Variables
+
+<ParamField path="OLLAMA_HOST" type="string" default="http://127.0.0.1:11434">
+  Ollama server address
+</ParamField>
+
+<ParamField path="OLLAMA_MODELS" type="string" default="~/.ollama/models">
+  Directory where models are stored (affects what gets deleted)
+</ParamField>
+
+## Exit Codes
+
+- `0` - Success, all models removed
+- `1` - Error occurred (model not found, permission denied, etc.)
+
+## Troubleshooting
+
+### Model Not Found
+
+```
+Error: model 'mymodel' not found
+```
+
+**Solution**: Check the exact model name:
+
+```bash
+ollama list
+ollama rm exact-name:exact-tag
+```
+
+### Server Not Running
+
+```
+Error: could not connect to ollama server
+```
+
+**Solution**: Start the Ollama server:
+
+```bash
+ollama serve
+```
+
+### Permission Denied
+
+```
+Error: permission denied
+```
+
+**Solution**: Check file permissions on the models directory:
+
+```bash
+ls -la ~/.ollama/models
+sudo chown -R $USER ~/.ollama
+```
+
+### Model Still Running
+
+If you see a warning about a running model, it will be stopped automatically:
+
+```
+Warning: unable to stop model 'llama3.2'
+deleted 'llama3.2'
+```
+
+This is usually harmless—the model is deleted despite the warning.
+
+## Safety Tips
+
+<CardGroup cols={2}>
+  <Card title="Check Before Deleting" icon="eye">
+    Use `ollama list` and `ollama show` to verify you're removing the right model
+  </Card>
+  
+  <Card title="Keep Modelfiles" icon="file">
+    Save Modelfiles for custom models so you can recreate them if needed
+  </Card>
+  
+  <Card title="Document Custom Models" icon="book">
+    Keep notes about custom models, their purpose, and configuration
+  </Card>
+  
+  <Card title="Consider Alternatives" icon="lightbulb">
+    If disk space isn't critical, consider keeping models you might reuse
+  </Card>
+</CardGroup>
+
+## Comparison with Stop
+
+| Command | Effect | Recoverable |
+|---------|--------|-------------|
+| `ollama stop` | Unload from memory | Yes, immediately |
+| `ollama rm` | Delete from disk | Yes, by re-pulling/creating |
+
+## Related Commands
+
+- [`ollama list`](/cli/list) - See which models can be removed
+- [`ollama show`](/cli/show) - Check model details before removing
+- [`ollama ps`](/cli/ps) - See if a model is running before removal
+- [`ollama pull`](/cli/pull) - Re-download a removed model
+- [`ollama create`](/cli/create) - Recreate a custom model

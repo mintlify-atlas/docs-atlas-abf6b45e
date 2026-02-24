@@ -1,0 +1,399 @@
+---
+title: 'Streaming Responses'
+description: 'Understand how Ollama uses server-sent events to stream model responses in real-time'
+---
+
+## Overview
+
+Ollama's API supports streaming responses for generation endpoints (`/api/generate` and `/api/chat`). Streaming allows you to receive model output progressively as it's generated, rather than waiting for the complete response.
+
+By default, streaming is **enabled** for all generation endpoints. You can disable it by setting `"stream": false` in your request.
+
+## How Streaming Works
+
+Ollama uses **newline-delimited JSON (NDJSON)** to stream responses. Each line in the response is a complete JSON object representing a chunk of the model's output.
+
+### Content Type
+
+When streaming is enabled, responses use the content type:
+```
+application/x-ndjson
+```
+
+When streaming is disabled, responses use:
+```
+application/json; charset=utf-8
+```
+
+### Response Format
+
+Each streaming chunk is a JSON object sent as a separate line. The client reads these chunks sequentially until the `done` field is `true`.
+
+## Streaming with Generate
+
+### Request
+
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "llama3.2",
+  "prompt": "Why is the sky blue?"
+}'
+```
+
+### Streaming Response
+
+Each chunk contains partial output:
+
+```json
+{"model":"llama3.2","created_at":"2023-08-04T08:52:19.385406455-07:00","response":"The","done":false}
+{"model":"llama3.2","created_at":"2023-08-04T08:52:19.427063241-07:00","response":" sky","done":false}
+{"model":"llama3.2","created_at":"2023-08-04T08:52:19.469304761-07:00","response":" appears","done":false}
+```
+
+### Final Chunk
+
+The last chunk has `"done": true` and includes usage metrics:
+
+```json
+{
+  "model": "llama3.2",
+  "created_at": "2023-08-04T19:22:45.499127Z",
+  "response": "",
+  "done": true,
+  "done_reason": "stop",
+  "context": [1, 2, 3],
+  "total_duration": 10706818083,
+  "load_duration": 6338219291,
+  "prompt_eval_count": 26,
+  "prompt_eval_duration": 130079000,
+  "eval_count": 259,
+  "eval_duration": 4232710000
+}
+```
+
+<ResponseField name="done" type="boolean" required>
+  Indicates if this is the final chunk in the stream
+</ResponseField>
+
+<ResponseField name="done_reason" type="string">
+  Reason generation stopped. See [Done Reasons](#done-reasons) below
+</ResponseField>
+
+<ResponseField name="response" type="string">
+  The generated text chunk. Empty in the final response when streaming
+</ResponseField>
+
+<ResponseField name="total_duration" type="integer">
+  Total time in nanoseconds for the entire request
+</ResponseField>
+
+<ResponseField name="load_duration" type="integer">
+  Time in nanoseconds spent loading the model
+</ResponseField>
+
+<ResponseField name="prompt_eval_count" type="integer">
+  Number of tokens in the prompt
+</ResponseField>
+
+<ResponseField name="prompt_eval_duration" type="integer">
+  Time in nanoseconds evaluating the prompt
+</ResponseField>
+
+<ResponseField name="eval_count" type="integer">
+  Number of tokens generated
+</ResponseField>
+
+<ResponseField name="eval_duration" type="integer">
+  Time in nanoseconds generating the response
+</ResponseField>
+
+## Streaming with Chat
+
+### Request
+
+```bash
+curl http://localhost:11434/api/chat -d '{
+  "model": "llama3.2",
+  "messages": [
+    {
+      "role": "user",
+      "content": "why is the sky blue?"
+    }
+  ]
+}'
+```
+
+### Streaming Response
+
+```json
+{"model":"llama3.2","created_at":"2023-08-04T08:52:19.385406455-07:00","message":{"role":"assistant","content":"The"},"done":false}
+{"model":"llama3.2","created_at":"2023-08-04T08:52:19.427063241-07:00","message":{"role":"assistant","content":" sky"},"done":false}
+```
+
+### Final Chunk
+
+```json
+{
+  "model": "llama3.2",
+  "created_at": "2023-08-04T19:22:45.499127Z",
+  "message": {
+    "role": "assistant",
+    "content": ""
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 4883583458,
+  "load_duration": 1334875,
+  "prompt_eval_count": 26,
+  "prompt_eval_duration": 342546000,
+  "eval_count": 282,
+  "eval_duration": 4535599000
+}
+```
+
+## Done Reasons
+
+The `done_reason` field indicates why generation stopped:
+
+<Note>
+The `done_reason` field is only present in the final chunk when `done` is `true`.
+</Note>
+
+| Reason | Description |
+|--------|-------------|
+| `stop` | Model finished naturally (hit EOS token or stop sequence) |
+| `length` | Reached maximum token limit (`num_predict` or context length) |
+| `load` | Model was only loaded, not run (empty prompt) |
+| `unload` | Model was unloaded from memory (`keep_alive: 0`) |
+
+### Examples
+
+<CodeGroup>
+
+```json Natural Stop
+{
+  "done": true,
+  "done_reason": "stop",
+  "response": "That's the final answer."
+}
+```
+
+```json Length Limit
+{
+  "done": true,
+  "done_reason": "length",
+  "response": "The model reached max tokens..."
+}
+```
+
+```json Model Load
+{
+  "done": true,
+  "done_reason": "load",
+  "response": ""
+}
+```
+
+```json Model Unload
+{
+  "done": true,
+  "done_reason": "unload",
+  "response": ""
+}
+```
+
+</CodeGroup>
+
+## Disabling Streaming
+
+To receive the entire response in a single JSON object, set `"stream": false`:
+
+### Request
+
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "llama3.2",
+  "prompt": "Why is the sky blue?",
+  "stream": false
+}'
+```
+
+### Response
+
+Single JSON object with complete response:
+
+```json
+{
+  "model": "llama3.2",
+  "created_at": "2023-08-04T19:22:45.499127Z",
+  "response": "The sky appears blue because of a phenomenon called Rayleigh scattering...",
+  "done": true,
+  "done_reason": "stop",
+  "context": [1, 2, 3],
+  "total_duration": 5043500667,
+  "load_duration": 5025959,
+  "prompt_eval_count": 26,
+  "prompt_eval_duration": 325953000,
+  "eval_count": 290,
+  "eval_duration": 4709213000
+}
+```
+
+## Implementation Details
+
+From the source code (`api/client.go:170-263`):
+
+1. **Client sends request** with JSON body to streaming endpoint
+2. **Server opens HTTP connection** and sets headers:
+   - `Content-Type: application/x-ndjson`
+   - `Accept: application/x-ndjson`
+3. **Server streams chunks** as newline-delimited JSON objects
+4. **Client uses bufio.Scanner** to read line-by-line with 8MB buffer
+5. **Each line is unmarshaled** into the response struct
+6. **Callback function invoked** for each chunk
+7. **Stream ends** when the chunk with `"done": true` is received
+
+### Buffer Size
+
+The client uses a maximum buffer size of **8 MB** (`maxBufferSize = 8 * 1048576`) to handle large responses.
+
+## Client Implementation Examples
+
+<CodeGroup>
+
+```go Go
+package main
+
+import (
+	"context"
+	"fmt"
+	"github.com/ollama/ollama/api"
+)
+
+func main() {
+	client, _ := api.ClientFromEnvironment()
+	
+	req := &api.GenerateRequest{
+		Model:  "llama3.2",
+		Prompt: "Why is the sky blue?",
+	}
+	
+	err := client.Generate(context.Background(), req, func(resp api.GenerateResponse) error {
+		fmt.Print(resp.Response)
+		return nil
+	})
+	
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+}
+```
+
+```python Python
+import requests
+import json
+
+url = "http://localhost:11434/api/generate"
+data = {
+    "model": "llama3.2",
+    "prompt": "Why is the sky blue?"
+}
+
+response = requests.post(url, json=data, stream=True)
+
+for line in response.iter_lines():
+    if line:
+        chunk = json.loads(line)
+        print(chunk['response'], end='', flush=True)
+        
+        if chunk.get('done'):
+            print(f"\n\nTokens: {chunk.get('eval_count')}")
+            print(f"Duration: {chunk.get('total_duration')}ns")
+```
+
+```javascript JavaScript/Node.js
+const response = await fetch('http://localhost:11434/api/generate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'llama3.2',
+    prompt: 'Why is the sky blue?'
+  })
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const chunk = decoder.decode(value);
+  const lines = chunk.split('\n').filter(line => line.trim());
+  
+  for (const line of lines) {
+    const json = JSON.parse(line);
+    process.stdout.write(json.response);
+    
+    if (json.done) {
+      console.log(`\n\nReason: ${json.done_reason}`);
+      console.log(`Tokens: ${json.eval_count}`);
+    }
+  }
+}
+```
+
+```bash cURL
+curl http://localhost:11434/api/generate -d '{
+  "model": "llama3.2",
+  "prompt": "Why is the sky blue?"
+}'
+```
+
+</CodeGroup>
+
+## Performance Tips
+
+<Tip>
+Streaming provides a better user experience for interactive applications by showing progress immediately.
+</Tip>
+
+### Calculating Tokens per Second
+
+Use the metrics in the final chunk:
+
+```javascript
+tokensPerSecond = (eval_count / eval_duration) * 1e9
+```
+
+Example:
+```javascript
+// eval_count = 259, eval_duration = 4232710000
+tokensPerSecond = (259 / 4232710000) * 1000000000
+// Result: ~61.2 tokens/second
+```
+
+### When to Use Streaming
+
+- ✅ **Use streaming** for: Interactive chat interfaces, real-time UIs, long responses
+- ❌ **Disable streaming** for: Batch processing, automated testing, structured output validation
+
+## Error Handling
+
+Errors during streaming are returned as JSON with an `error` field:
+
+```json
+{
+  "error": "model not found"
+}
+```
+
+For HTTP errors, check the response status code before parsing:
+
+```python
+if response.status_code != 200:
+    error = response.json()
+    print(f"Error: {error.get('error')}")
+```
+
+See [Error Handling](/api/errors) for complete error reference.

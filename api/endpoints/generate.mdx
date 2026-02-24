@@ -1,0 +1,352 @@
+---
+title: 'POST /api/generate'
+description: 'Generate a completion given a prompt'
+---
+
+Generate a response for a given prompt with a provided model. This is the core text generation endpoint that supports completions, image generation, and multimodal inputs.
+
+## Request
+
+### Endpoint
+
+```
+POST /api/generate
+```
+
+### Request Body
+
+<ParamField path="model" type="string" required>
+  Model name to use for generation (e.g., `llama3.2`, `mistral`, `stable-diffusion`)
+</ParamField>
+
+<ParamField path="prompt" type="string" required>
+  The prompt to generate a response for
+</ParamField>
+
+<ParamField path="suffix" type="string">
+  Text that comes after the inserted text (for fill-in-the-middle models)
+</ParamField>
+
+<ParamField path="system" type="string">
+  System message to override the model's default system prompt
+</ParamField>
+
+<ParamField path="template" type="string">
+  Custom prompt template to override the model's default
+</ParamField>
+
+<ParamField path="context" type="array">
+  Context from a previous generation to maintain conversational memory (deprecated)
+</ParamField>
+
+<ParamField path="stream" type="boolean" default="true">
+  Enable streaming of response chunks. Set to `false` to wait for complete response.
+</ParamField>
+
+<ParamField path="raw" type="boolean" default="false">
+  If `true`, no formatting will be applied to the prompt
+</ParamField>
+
+<ParamField path="format" type="string | object">
+  Format to return response in. Use `"json"` for JSON mode or provide a JSON schema.
+</ParamField>
+
+<ParamField path="images" type="array">
+  Array of base64-encoded images for multimodal models
+</ParamField>
+
+<ParamField path="options" type="object">
+  Model-specific options for customizing generation
+  
+  <Expandable title="Common Options">
+    <ParamField path="temperature" type="float" default="0.8">
+      Controls randomness (0.0 = deterministic, 2.0 = very random)
+    </ParamField>
+    
+    <ParamField path="top_k" type="integer" default="40">
+      Limits next token selection to K most likely tokens
+    </ParamField>
+    
+    <ParamField path="top_p" type="float" default="0.9">
+      Nucleus sampling threshold (0.0 to 1.0)
+    </ParamField>
+    
+    <ParamField path="num_predict" type="integer" default="-1">
+      Maximum tokens to generate (-1 = unlimited)
+    </ParamField>
+    
+    <ParamField path="num_ctx" type="integer" default="4096">
+      Context window size
+    </ParamField>
+    
+    <ParamField path="seed" type="integer" default="-1">
+      Random seed for reproducibility
+    </ParamField>
+    
+    <ParamField path="repeat_penalty" type="float" default="1.1">
+      Penalty for repeating tokens
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="keep_alive" type="string | number" default="5m">
+  Duration to keep model in memory (e.g., `"5m"`, `"1h"`, `-1` for indefinite)
+</ParamField>
+
+<ParamField path="think" type="boolean | string">
+  Enable thinking mode for reasoning models (`true`/`false` or `"high"`, `"medium"`, `"low"`)
+</ParamField>
+
+<ParamField path="truncate" type="boolean" default="true">
+  Truncate prompt if it exceeds context length
+</ParamField>
+
+<ParamField path="shift" type="boolean" default="true">
+  Shift context when hitting context length instead of erroring
+</ParamField>
+
+<ParamField path="logprobs" type="boolean" default="false">
+  Return log probabilities for output tokens
+</ParamField>
+
+<ParamField path="top_logprobs" type="integer" default="0">
+  Number of top tokens to return at each position (0-20, requires `logprobs: true`)
+</ParamField>
+
+### Image Generation Parameters
+
+<Note>
+The following parameters are only used with image generation models:
+</Note>
+
+<ParamField path="width" type="integer">
+  Width of generated image in pixels (max 4096)
+</ParamField>
+
+<ParamField path="height" type="integer">
+  Height of generated image in pixels (max 4096)
+</ParamField>
+
+<ParamField path="steps" type="integer">
+  Number of diffusion steps for image generation
+</ParamField>
+
+## Response
+
+### Response Fields
+
+<ResponseField name="model" type="string">
+  The model used for generation
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  Timestamp in ISO 8601 format
+</ResponseField>
+
+<ResponseField name="response" type="string">
+  The generated text response
+</ResponseField>
+
+<ResponseField name="thinking" type="string">
+  Reasoning text when thinking mode is enabled
+</ResponseField>
+
+<ResponseField name="done" type="boolean">
+  Whether generation is complete
+</ResponseField>
+
+<ResponseField name="done_reason" type="string">
+  Reason for completion: `stop`, `length`, `load`, `unload`
+</ResponseField>
+
+<ResponseField name="context" type="array">
+  Token encoding of the conversation for maintaining memory (deprecated)
+</ResponseField>
+
+<ResponseField name="total_duration" type="integer">
+  Total duration in nanoseconds
+</ResponseField>
+
+<ResponseField name="load_duration" type="integer">
+  Model loading time in nanoseconds
+</ResponseField>
+
+<ResponseField name="prompt_eval_count" type="integer">
+  Number of tokens in the prompt
+</ResponseField>
+
+<ResponseField name="prompt_eval_duration" type="integer">
+  Time evaluating the prompt in nanoseconds
+</ResponseField>
+
+<ResponseField name="eval_count" type="integer">
+  Number of tokens generated
+</ResponseField>
+
+<ResponseField name="eval_duration" type="integer">
+  Time generating response in nanoseconds
+</ResponseField>
+
+<ResponseField name="logprobs" type="array">
+  Log probability information (when enabled)
+</ResponseField>
+
+<ResponseField name="image" type="string">
+  Base64-encoded generated image (image generation models only)
+</ResponseField>
+
+<ResponseField name="completed" type="integer">
+  Number of completed steps during image generation
+</ResponseField>
+
+<ResponseField name="total" type="integer">
+  Total steps for image generation
+</ResponseField>
+
+## Examples
+
+### Basic Text Generation
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:11434/api/generate -d '{
+  "model": "llama3.2",
+  "prompt": "What is the capital of France?",
+  "stream": false
+}'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:11434/api/generate',
+    json={
+        'model': 'llama3.2',
+        'prompt': 'What is the capital of France?',
+        'stream': False
+    }
+)
+
+result = response.json()
+print(result['response'])
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:11434/api/generate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'llama3.2',
+    prompt: 'What is the capital of France?',
+    stream: false
+  })
+});
+
+const data = await response.json();
+console.log(data.response);
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "model": "llama3.2",
+  "created_at": "2024-02-24T12:34:56.789Z",
+  "response": "The capital of France is Paris.",
+  "done": true,
+  "done_reason": "stop",
+  "context": [128000, 3923, 374, 279, ...],
+  "total_duration": 2345678901,
+  "load_duration": 123456789,
+  "prompt_eval_count": 8,
+  "prompt_eval_duration": 234567890,
+  "eval_count": 8,
+  "eval_duration": 1987654321
+}
+```
+
+### Streaming Generation
+
+<CodeGroup>
+
+```python Python
+import requests
+import json
+
+response = requests.post(
+    'http://localhost:11434/api/generate',
+    json={'model': 'llama3.2', 'prompt': 'Write a haiku'},
+    stream=True
+)
+
+for line in response.iter_lines():
+    if line:
+        chunk = json.loads(line)
+        print(chunk['response'], end='', flush=True)
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:11434/api/generate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'llama3.2',
+    prompt: 'Write a haiku'
+  })
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const chunk = JSON.parse(decoder.decode(value));
+  process.stdout.write(chunk.response);
+}
+```
+
+</CodeGroup>
+
+### JSON Mode
+
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "llama3.2",
+  "prompt": "List 3 colors",
+  "format": "json",
+  "stream": false
+}'
+```
+
+### Multimodal Input (Vision Models)
+
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "llama3.2-vision",
+  "prompt": "What is in this image?",
+  "images": ["<base64-encoded-image>"],
+  "stream": false
+}'
+```
+
+## Error Responses
+
+<ResponseField name="error" type="string">
+  Description of the error
+</ResponseField>
+
+### Common Errors
+
+- **400 Bad Request**: Invalid model name, parameters, or image dimensions
+- **404 Not Found**: Model not found
+- **500 Internal Server Error**: Generation error
+
+<Note>
+To unload a model from memory, send an empty prompt with `keep_alive: 0`.
+</Note>

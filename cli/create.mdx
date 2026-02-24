@@ -1,0 +1,398 @@
+---
+title: 'ollama create'
+description: 'Create a custom model from a Modelfile'
+icon: 'plus'
+---
+
+## Synopsis
+
+```bash
+ollama create MODEL
+ollama create MODEL -f MODELFILE
+```
+
+## Description
+
+The `create` command builds a custom model from a Modelfile. A Modelfile is a blueprint that defines:
+- Base model to build from
+- Custom system prompts
+- Model parameters (temperature, context length, etc.)
+- Additional files (adapters, weights)
+
+This allows you to customize existing models or create entirely new ones.
+
+## Arguments
+
+<ParamField path="MODEL" type="string" required>
+  Name for your new model
+  
+  Examples:
+  - `mymodel`
+  - `myusername/custom-assistant`
+  - `code-helper:latest`
+</ParamField>
+
+## Options
+
+<ParamField path="--file" type="string" default="Modelfile">
+  Short: `-f`
+  
+  Path to the Modelfile. Defaults to `Modelfile` in the current directory.
+  
+  ```bash
+  ollama create mymodel -f ./custom/Modelfile
+  ```
+</ParamField>
+
+<ParamField path="--quantize" type="string">
+  Short: `-q`
+  
+  Quantization level for the model (reduces size and memory usage)
+  
+  Options: `q4_K_M`, `q4_K_S`, `q5_K_M`, `q5_K_S`, `q8_0`
+  
+  ```bash
+  ollama create mymodel -f Modelfile -q q4_K_M
+  ```
+</ParamField>
+
+<ParamField path="--experimental" type="boolean" default="false">
+  Enable experimental safetensors model creation from local weights
+  
+  ```bash
+  ollama create mymodel --experimental
+  ```
+</ParamField>
+
+## Modelfile Syntax
+
+A Modelfile contains instructions for building a model:
+
+```dockerfile
+# Base model
+FROM llama3.2
+
+# System prompt
+SYSTEM You are a helpful coding assistant specialized in Python.
+
+# Parameters
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+
+# Template
+TEMPLATE """{{ .System }}
+
+User: {{ .Prompt }}
+Assistant: """
+```
+
+### Available Instructions
+
+<ParamField path="FROM" type="string" required>
+  Base model to build from. Can be:
+  - Model name: `FROM llama3.2`
+  - Local model: `FROM ./model-weights`
+  - Model with tag: `FROM mistral:7b-instruct`
+</ParamField>
+
+<ParamField path="SYSTEM" type="string">
+  System prompt that sets the behavior and context for the model
+  
+  ```dockerfile
+  SYSTEM You are a helpful assistant that speaks like a pirate.
+  ```
+</ParamField>
+
+<ParamField path="TEMPLATE" type="string">
+  Chat template that formats prompts. Uses Go template syntax.
+  
+  ```dockerfile
+  TEMPLATE """{{ .System }}
+  
+  {{ .Prompt }}"""
+  ```
+</ParamField>
+
+<ParamField path="PARAMETER" type="string">
+  Set model parameters:
+  - `temperature` (float): Randomness (0.0-2.0)
+  - `top_p` (float): Nucleus sampling (0.0-1.0)
+  - `top_k` (int): Top-k sampling
+  - `num_ctx` (int): Context window size
+  - `repeat_penalty` (float): Penalty for repetition
+  
+  ```dockerfile
+  PARAMETER temperature 0.8
+  PARAMETER num_ctx 4096
+  ```
+</ParamField>
+
+<ParamField path="LICENSE" type="string">
+  License information for the model
+  
+  ```dockerfile
+  LICENSE """MIT License
+  
+  Copyright (c) 2024..."""
+  ```
+</ParamField>
+
+<ParamField path="ADAPTER" type="path">
+  Path to LoRA adapter files
+  
+  ```dockerfile
+  ADAPTER ./fine-tune-adapter.bin
+  ```
+</ParamField>
+
+## Examples
+
+### Basic Custom Model
+
+Create a Modelfile:
+
+```dockerfile title="Modelfile"
+FROM llama3.2
+
+SYSTEM You are a helpful assistant named Bob.
+
+PARAMETER temperature 0.8
+```
+
+Create the model:
+
+```bash
+ollama create bob
+```
+
+Run it:
+
+```bash
+ollama run bob
+```
+
+### Coding Assistant
+
+```dockerfile title="Modelfile"
+FROM codellama:7b
+
+SYSTEM """
+You are an expert programmer. Always:
+- Write clean, well-commented code
+- Follow best practices
+- Explain your reasoning
+"""
+
+PARAMETER temperature 0.2
+PARAMETER top_p 0.9
+
+TEMPLATE """### System:
+{{ .System }}
+
+### User:
+{{ .Prompt }}
+
+### Assistant:
+"""
+```
+
+```bash
+ollama create code-assistant -f Modelfile
+```
+
+### Quantized Model
+
+Create a smaller, faster version:
+
+```bash
+ollama create small-model -f Modelfile -q q4_K_M
+```
+
+### From Local Weights
+
+Create from a directory containing model weights:
+
+```dockerfile title="Modelfile"
+FROM ./local-model-weights
+
+SYSTEM You are a helpful assistant.
+```
+
+```bash
+ollama create custom-model -f Modelfile
+```
+
+### With LoRA Adapter
+
+Add fine-tuned adapter weights:
+
+```dockerfile title="Modelfile"
+FROM llama3.2
+
+ADAPTER ./my-lora-adapter.bin
+
+SYSTEM This model is fine-tuned for medical advice.
+```
+
+```bash
+ollama create medical-assistant -f Modelfile
+```
+
+## Advanced Examples
+
+### Multi-File Model
+
+```dockerfile title="Modelfile"
+FROM mistral:7b
+
+# Load multiple adapters
+ADAPTER ./adapter1.bin
+ADAPTER ./adapter2.bin
+
+SYSTEM You are a multilingual assistant.
+
+PARAMETER temperature 0.7
+PARAMETER num_ctx 8192
+PARAMETER stop "User:"
+PARAMETER stop "Assistant:"
+```
+
+### Function Calling Model
+
+```dockerfile title="Modelfile"
+FROM mistral:7b-instruct
+
+SYSTEM """
+You are a function-calling assistant. When the user needs data:
+1. Determine which function to call
+2. Format the call as JSON
+3. Return the result
+"""
+
+PARAMETER temperature 0.1
+PARAMETER num_predict 2048
+
+TEMPLATE """[INST] {{ .System }}
+
+{{ .Prompt }} [/INST]
+"""
+```
+
+## Model Creation Process
+
+When you run `ollama create`, it:
+
+1. Parses the Modelfile
+2. Downloads base model (if needed)
+3. Processes any adapter files
+4. Combines configuration and weights
+5. Generates model manifest
+6. Saves to local model library
+
+Output example:
+```
+gathering model components
+pulling llama3.2:latest
+pulling manifest
+pulling model.bin: 100%
+copying file adapter.bin: 100%
+writing manifest
+success
+```
+
+## Quantization Levels
+
+| Level | Size | Quality | Speed | Description |
+|-------|------|---------|-------|-------------|
+| q4_K_M | ~4 bits/weight | Good | Fast | Recommended for most use cases |
+| q4_K_S | ~4 bits/weight | Moderate | Fastest | Smaller, faster, lower quality |
+| q5_K_M | ~5 bits/weight | Better | Medium | Higher quality, larger |
+| q5_K_S | ~5 bits/weight | Good | Medium | Balanced medium quality |
+| q8_0 | ~8 bits/weight | Best | Slow | Highest quality, largest |
+
+## Environment Variables
+
+<ParamField path="OLLAMA_HOST" type="string" default="http://127.0.0.1:11434">
+  Ollama server address
+</ParamField>
+
+## Exit Codes
+
+- `0` - Success, model created
+- `1` - Error occurred (invalid Modelfile, missing base model, etc.)
+
+## Troubleshooting
+
+### Modelfile Not Found
+
+```
+Error: specified Modelfile wasn't found
+```
+
+**Solution**: Create a `Modelfile` in the current directory or use `-f` to specify the path:
+
+```bash
+ollama create mymodel -f /path/to/Modelfile
+```
+
+### Invalid Model Name
+
+```
+Error: invalid model name
+```
+
+**Solution**: Model names must be lowercase and can contain letters, numbers, hyphens, and underscores.
+
+### Base Model Not Found
+
+```
+Error: model 'basemodel' not found
+```
+
+**Solution**: Pull the base model first:
+
+```bash
+ollama pull llama3.2
+ollama create mymodel -f Modelfile
+```
+
+### Server Not Running
+
+```
+Error: could not connect to ollama server
+```
+
+**Solution**: Start the Ollama server:
+
+```bash
+ollama serve
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Clear System Prompts" icon="message">
+    Write specific, detailed system prompts that clearly define the model's role and behavior.
+  </Card>
+  
+  <Card title="Test Parameters" icon="sliders">
+    Experiment with temperature and other parameters to find the right balance for your use case.
+  </Card>
+  
+  <Card title="Version Your Models" icon="tag">
+    Use tags to version your models: `mymodel:v1`, `mymodel:v2`
+  </Card>
+  
+  <Card title="Document Changes" icon="file-text">
+    Keep your Modelfile in version control and document what each version changes.
+  </Card>
+</CardGroup>
+
+## Related Commands
+
+- [`ollama run`](/cli/run) - Run your created model
+- [`ollama show`](/cli/show) - View model details
+- [`ollama push`](/cli/push) - Share your model
+- [`ollama rm`](/cli/rm) - Delete a model
+- [`ollama list`](/cli/list) - List all models

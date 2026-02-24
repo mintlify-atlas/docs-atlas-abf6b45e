@@ -1,0 +1,312 @@
+---
+title: Codex
+description: OpenAI's open-source coding agent for terminal workflows
+icon: terminal
+---
+
+Codex is OpenAI's open-source coding agent that runs in your terminal. It can read, modify, and execute code with support for multiple models through Ollama.
+
+## Installation
+
+Install Codex via npm:
+
+```bash
+npm install -g @openai/codex
+```
+
+Learn more at [developers.openai.com/codex](https://developers.openai.com/codex/cli/).
+
+## Quick Setup
+
+```bash
+ollama launch codex
+```
+
+Ollama automatically:
+
+<Steps>
+  <Step title="Selects a model">
+    Interactive picker with local and cloud models
+  </Step>
+  <Step title="Configures routing">
+    Sets up model aliases (primary, fast)
+  </Step>
+  <Step title="Launches Codex">
+    Starts in your current directory with OSS mode
+  </Step>
+</Steps>
+
+### Configuration Only
+
+```bash
+ollama launch codex --config
+```
+
+### Pass Extra Arguments
+
+```bash
+ollama launch codex -- --sandbox workspace-write
+```
+
+## Manual Setup
+
+<Note>
+  Codex requires a **large context window** (at least 64k tokens) for effective code understanding.
+</Note>
+
+To use Codex with Ollama manually, use the `--oss` flag:
+
+```bash
+codex --oss
+```
+
+This tells Codex to use the open-source configuration, which defaults to connecting to Ollama.
+
+### Specify a Different Model
+
+```bash
+codex --oss -m gpt-oss:120b
+```
+
+### Cloud Models
+
+```bash
+codex --oss -m gpt-oss:120b-cloud
+```
+
+## Recommended Models
+
+### Cloud Models
+
+<CardGroup cols={2}>
+  <Card title="gpt-oss:120b-cloud">
+    Large reasoning model (130k context)
+  </Card>
+  <Card title="qwen3-coder:480b-cloud">
+    Advanced code generation (260k context)
+  </Card>
+  <Card title="deepseek-v3.1:671b-cloud">
+    Massive reasoning model (160k context)
+  </Card>
+</CardGroup>
+
+More cloud models at [ollama.com/search?c=cloud](https://ollama.com/search?c=cloud).
+
+### Local Models
+
+<CardGroup cols={2}>
+  <Card title="gpt-oss:20b" recommended>
+    Default model for Codex (~16GB VRAM)
+  </Card>
+  <Card title="gpt-oss:120b">
+    Larger reasoning model (~80GB VRAM)
+  </Card>
+  <Card title="qwen3-coder">
+    Efficient code generation (~11GB VRAM)
+  </Card>
+</CardGroup>
+
+## Configuration File
+
+Codex stores configuration in `~/.codex/config.toml`:
+
+<Accordion title="Example configuration">
+```toml
+model = "gpt-oss:20b"
+model_provider = "ollama"
+
+[model_providers.ollama]
+name = "Ollama"
+base_url = "http://localhost:11434/v1"
+env_key = "OLLAMA_API_KEY"
+```
+</Accordion>
+
+Ollama automatically manages this file when you use `ollama launch codex`.
+
+## Model Aliases
+
+Codex uses model aliases for routing:
+
+- **primary** — Main model for complex reasoning
+- **fast** — Lightweight model for quick operations
+
+Ollama configures these during launch. Cloud models automatically populate the `fast` alias.
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="Terminal Native" icon="terminal">
+    Designed for command-line workflows
+  </Card>
+  <Card title="Multi-file Editing" icon="files">
+    Edit multiple files simultaneously
+  </Card>
+  <Card title="Shell Integration" icon="code">
+    Execute commands and scripts
+  </Card>
+  <Card title="Context-Aware" icon="brain">
+    Understands project structure
+  </Card>
+</CardGroup>
+
+## Usage Examples
+
+### Start in a Project
+
+```bash
+cd ~/projects/my-app
+codex --oss
+```
+
+### Ask Codex to Make Changes
+
+```bash
+codex --oss "Add unit tests for the API module"
+```
+
+### Use with Sandbox Mode
+
+```bash
+codex --oss --sandbox workspace-write
+```
+
+Sandbox modes:
+- `workspace-write` — Allow file modifications
+- `workspace-read` — Read-only access
+- `none` — No file system access
+
+### Specify a Profile
+
+```bash
+codex --oss -p myprofile
+```
+
+## Connecting to ollama.com
+
+To use cloud models hosted on ollama.com:
+
+<Steps>
+  <Step title="Create an API key">
+    Go to [ollama.com/settings/keys](https://ollama.com/settings/keys)
+  </Step>
+  <Step title="Export the key">
+    ```bash
+    export OLLAMA_API_KEY=your-key-here
+    ```
+  </Step>
+  <Step title="Update config file">
+    Edit `~/.codex/config.toml`:
+    ```toml
+    model = "gpt-oss:120b"
+    model_provider = "ollama"
+
+    [model_providers.ollama]
+    name = "Ollama"
+    base_url = "https://ollama.com/v1"
+    env_key = "OLLAMA_API_KEY"
+    ```
+  </Step>
+  <Step title="Run Codex">
+    ```bash
+    codex
+    ```
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### Model Not Found
+
+Pull the model first:
+
+```bash
+ollama pull gpt-oss:20b
+ollama list
+```
+
+### Connection Refused
+
+Verify Ollama is running:
+
+```bash
+ollama list
+```
+
+Check the base URL in `~/.codex/config.toml` matches your Ollama host.
+
+### Context Window Too Small
+
+For local models, increase the context window:
+
+```bash
+ollama run gpt-oss:20b /set parameter num_ctx 65536
+```
+
+See [Context Length](/context-length) for more details.
+
+### OSS Flag Required
+
+If you see authentication errors, ensure you're using the `--oss` flag:
+
+```bash
+codex --oss
+```
+
+This flag tells Codex to use Ollama instead of OpenAI's API.
+
+## Advanced Usage
+
+### Custom Configuration
+
+Manually edit `~/.codex/config.toml` for advanced settings:
+
+```toml
+model = "qwen3-coder:480b-cloud"
+model_provider = "ollama"
+max_tokens = 131072
+temperature = 0.7
+
+[model_providers.ollama]
+name = "Ollama"
+base_url = "http://localhost:11434/v1"
+env_key = "OLLAMA_API_KEY"
+
+[sandbox]
+mode = "workspace-write"
+```
+
+### Multiple Profiles
+
+Create different profiles for different workflows:
+
+```bash
+codex --oss -p frontend  # Frontend development
+codex --oss -p backend   # Backend development
+codex --oss -p testing   # Testing workflow
+```
+
+### Environment Variables
+
+Codex respects these environment variables:
+
+- `OLLAMA_API_KEY` — API key for ollama.com
+- `CODEX_MODEL` — Override default model
+- `CODEX_PROFILE` — Select a configuration profile
+
+## Learn More
+
+<CardGroup cols={2}>
+  <Card title="Codex Docs" icon="book" href="https://developers.openai.com/codex/cli/">
+    Official Codex documentation
+  </Card>
+  <Card title="OpenAI API" icon="code" href="/api/openai-compatibility">
+    Ollama's OpenAI-compatible API
+  </Card>
+  <Card title="Context Length" icon="brain" href="/context-length">
+    Configure model context windows
+  </Card>
+  <Card title="GPT-OSS Models" icon="cube" href="https://ollama.com/library/gpt-oss">
+    Browse GPT-OSS model variants
+  </Card>
+</CardGroup>

@@ -1,0 +1,376 @@
+---
+title: OpenCode
+description: Open-source AI coding assistant for your terminal
+icon: window
+---
+
+OpenCode is an open-source AI coding assistant that runs in your terminal. Built by Anomaly, it provides an intuitive interface for AI-powered code generation and editing.
+
+## Installation
+
+Install OpenCode from the official source:
+
+```bash
+curl -fsSL https://opencode.ai/install | bash
+```
+
+Learn more at [opencode.ai](https://opencode.ai).
+
+## Quick Setup
+
+```bash
+ollama launch opencode
+```
+
+Ollama automatically:
+
+<Steps>
+  <Step title="Selects models">
+    Interactive multi-select picker for models
+  </Step>
+  <Step title="Updates configuration">
+    Writes to `~/.config/opencode/opencode.json`
+  </Step>
+  <Step title="Updates recents">
+    Adds models to recent list in `~/.local/state/opencode/model.json`
+  </Step>
+  <Step title="Launches OpenCode">
+    Starts with configured models available
+  </Step>
+</Steps>
+
+### Configuration Only
+
+```bash
+ollama launch opencode --config
+```
+
+### Use Specific Model
+
+```bash
+ollama launch opencode --model qwen3-coder:480b-cloud
+```
+
+<Note>
+  OpenCode requires a **large context window** (at least 64k tokens). See [Context Length](/context-length) for configuration.
+</Note>
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="Multiple Models" icon="cubes">
+    Select and switch between multiple configured models
+  </Card>
+  <Card title="Recent History" icon="clock">
+    Quick access to recently used models
+  </Card>
+  <Card title="Favorites" icon="star">
+    Bookmark your preferred models
+  </Card>
+  <Card title="Cloud Support" icon="cloud">
+    Automatic configuration for cloud models
+  </Card>
+</CardGroup>
+
+## Recommended Models
+
+### Cloud Models
+
+<Card title="glm-4.7:cloud" recommended>
+  Recommended model for OpenCode (200k context)
+</Card>
+
+Other excellent options:
+
+- `qwen3-coder:480b-cloud` — Advanced code generation (260k context)
+- `minimax-m2.5:cloud` — Fast, efficient coding (200k context)
+- `deepseek-v3.1:671b-cloud` — Massive reasoning (160k context)
+
+Explore more at [ollama.com/search?c=cloud](https://ollama.com/search?c=cloud).
+
+### Local Models
+
+- `qwen3-coder` — Efficient code generation (~11GB VRAM)
+- `glm-4.7` — Reasoning and coding (~25GB VRAM)
+- `deepseek-coder` — Specialized code model (~20GB VRAM)
+
+## Manual Setup
+
+<Accordion title="Manual configuration">
+Add a configuration block to `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama",
+      "options": {
+        "baseURL": "http://localhost:11434/v1"
+      },
+      "models": {
+        "qwen3-coder": {
+          "name": "qwen3-coder"
+        }
+      }
+    }
+  }
+}
+```
+</Accordion>
+
+## Cloud Models Configuration
+
+<Accordion title="Cloud model setup">
+For cloud models with context/output limits:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama",
+      "options": {
+        "baseURL": "http://localhost:11434/v1"
+      },
+      "models": {
+        "glm-4.7:cloud": {
+          "name": "glm-4.7:cloud",
+          "limit": {
+            "context": 202752,
+            "output": 131072
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Ollama automatically adds these limits when you use `ollama launch opencode`.
+</Accordion>
+
+## Configuration Files
+
+OpenCode uses two configuration files:
+
+### Main Config
+
+`~/.config/opencode/opencode.json` — Provider and model configuration
+
+### State File
+
+`~/.local/state/opencode/model.json` — Recent and favorite models
+
+<Accordion title="Example state file">
+```json
+{
+  "recent": [
+    {
+      "providerID": "ollama",
+      "modelID": "glm-4.7:cloud"
+    },
+    {
+      "providerID": "ollama",
+      "modelID": "qwen3-coder"
+    }
+  ],
+  "favorite": [
+    {
+      "providerID": "ollama",
+      "modelID": "glm-4.7:cloud"
+    }
+  ],
+  "variant": {}
+}
+```
+</Accordion>
+
+Ollama automatically manages both files when you use `ollama launch opencode`.
+
+## Multiple Models
+
+OpenCode supports multiple models simultaneously. Use `ollama launch opencode` to configure several models:
+
+```bash
+ ollama launch opencode
+# → Select multiple models in the picker
+# → All models become available in OpenCode
+```
+
+Switch between models in the OpenCode UI.
+
+## Connecting to ollama.com
+
+To use cloud models hosted on ollama.com:
+
+<Steps>
+  <Step title="Create an API key">
+    Go to [ollama.com/settings/keys](https://ollama.com/settings/keys)
+  </Step>
+  <Step title="Export the key">
+    ```bash
+    export OLLAMA_API_KEY=your-key-here
+    ```
+  </Step>
+  <Step title="Update config">
+    Edit `~/.config/opencode/opencode.json`:
+    ```json
+    {
+      "$schema": "https://opencode.ai/config.json",
+      "provider": {
+        "ollama": {
+          "npm": "@ai-sdk/openai-compatible",
+          "name": "Ollama Cloud",
+          "options": {
+            "baseURL": "https://ollama.com/v1",
+            "headers": {
+              "Authorization": "Bearer ${OLLAMA_API_KEY}"
+            }
+          },
+          "models": {
+            "glm-4.7:cloud": {
+              "name": "glm-4.7:cloud"
+            }
+          }
+        }
+      }
+    }
+    ```
+  </Step>
+  <Step title="Restart OpenCode">
+    ```bash
+    opencode
+    ```
+  </Step>
+</Steps>
+
+## Usage Examples
+
+### Start in a Project
+
+```bash
+cd ~/projects/my-app
+opencode
+```
+
+OpenCode opens in your terminal with the configured models available.
+
+### Switch Models
+
+Use the model picker in the OpenCode UI (usually `Ctrl+M` or `Cmd+M`).
+
+### Access Recent Models
+
+Your most recently used models appear at the top of the picker.
+
+## Troubleshooting
+
+### Model Not Available
+
+Ensure the model is pulled:
+
+```bash
+ollama pull glm-4.7:cloud
+ollama list
+```
+
+### Configuration Not Loading
+
+Restart OpenCode to pick up config changes:
+
+```bash
+# Kill existing OpenCode instances
+pkill opencode
+
+# Start fresh
+opencode
+```
+
+### Context Window Issues
+
+For local models, increase context:
+
+```bash
+ollama run qwen3-coder /set parameter num_ctx 65536
+```
+
+See [Context Length](/context-length) for details.
+
+### Ollama Connection Failed
+
+Verify Ollama is running:
+
+```bash
+ollama list
+```
+
+Check the base URL in your config matches your Ollama host.
+
+## Advanced Configuration
+
+### Custom Provider Name
+
+```json
+{
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "My Local Ollama",
+      "options": {
+        "baseURL": "http://localhost:11434/v1"
+      }
+    }
+  }
+}
+```
+
+### Per-Model Settings
+
+```json
+{
+  "provider": {
+    "ollama": {
+      "models": {
+        "qwen3-coder": {
+          "name": "Qwen3 Coder (Local)",
+          "limit": {
+            "context": 32768,
+            "output": 8192
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Environment Variables
+
+OpenCode respects:
+
+- `OLLAMA_HOST` — Override Ollama server URL
+- `OLLAMA_API_KEY` — API key for ollama.com
+
+## Backup Configuration
+
+When using `ollama launch opencode`, Ollama creates backups in `~/.ollama/backups/` before modifying your configuration.
+
+## Learn More
+
+<CardGroup cols={2}>
+  <Card title="OpenCode Website" icon="globe" href="https://opencode.ai">
+    Official OpenCode website
+  </Card>
+  <Card title="Install Guide" icon="download" href="https://opencode.ai/install">
+    Detailed installation instructions
+  </Card>
+  <Card title="OpenAI API" icon="code" href="/api/openai-compatibility">
+    Ollama's OpenAI-compatible API
+  </Card>
+  <Card title="Context Length" icon="brain" href="/context-length">
+    Configure model context windows
+  </Card>
+</CardGroup>

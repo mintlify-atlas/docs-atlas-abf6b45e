@@ -1,0 +1,482 @@
+---
+title: Docker
+description: Run Ollama in Docker containers with support for CPU, NVIDIA GPU, AMD GPU, and Vulkan
+---
+
+The official [Ollama Docker image](https://hub.docker.com/r/ollama/ollama) provides a containerized way to run Ollama with full GPU acceleration support.
+
+## Quick Start
+
+### CPU Only
+
+Run Ollama using CPU inference:
+
+```bash
+docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+```
+
+This creates a container with:
+- Volume mount for persistent model storage
+- Port 11434 exposed for API access
+- Background daemon mode
+
+## GPU Support
+
+### NVIDIA GPU
+
+For NVIDIA GPU acceleration, you need the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+
+<Steps>
+  <Step title="Install NVIDIA Container Toolkit">
+    <Tabs>
+      <Tab title="Ubuntu/Debian">
+        ```bash
+        # Configure the repository
+        curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
+            | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+        
+        curl -fsSL https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
+            | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' \
+            | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+        
+        sudo apt-get update
+
+        # Install the toolkit
+        sudo apt-get install -y nvidia-container-toolkit
+        ```
+      </Tab>
+
+      <Tab title="RHEL/CentOS">
+        ```bash
+        # Configure the repository
+        curl -fsSL https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo \
+            | sudo tee /etc/yum.repos.d/nvidia-container-toolkit.repo
+
+        # Install the toolkit
+        sudo yum install -y nvidia-container-toolkit
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Configure Docker Runtime">
+    Configure Docker to use the NVIDIA runtime:
+
+    ```bash
+    sudo nvidia-ctk runtime configure --runtime=docker
+    sudo systemctl restart docker
+    ```
+  </Step>
+
+  <Step title="Run with GPU">
+    Start Ollama with GPU support:
+
+    ```bash
+    docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+    ```
+  </Step>
+</Steps>
+
+<Note>
+For NVIDIA JetPack systems, set the JetPack version:
+```bash
+docker run -d --gpus=all -e JETSON_JETPACK=5 -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+```
+Use `JETSON_JETPACK=6` for JetPack 6.
+</Note>
+
+### AMD GPU (ROCm)
+
+For AMD GPU support, use the `rocm` tag:
+
+```bash
+docker run -d --device /dev/kfd --device /dev/dri \
+  -v ollama:/root/.ollama \
+  -p 11434:11434 \
+  --name ollama \
+  ollama/ollama:rocm
+```
+
+**Supported AMD GPUs:**
+- Radeon RX 7900, 7800, 7700, 7600 series
+- Radeon RX 6900, 6800 series
+- Radeon PRO W7000/W6000 series
+- AMD Instinct MI series
+
+<Warning>
+In some distributions, you may need to pass additional `--group-add` arguments for device access. Check device permissions with:
+```bash
+ls -lnd /dev/kfd /dev/dri /dev/dri/*
+```
+</Warning>
+
+### Vulkan Support
+
+Vulkan provides cross-platform GPU acceleration and is bundled in the standard image:
+
+```bash
+docker run -d --device /dev/kfd --device /dev/dri \
+  -e OLLAMA_VULKAN=1 \
+  -v ollama:/root/.ollama \
+  -p 11434:11434 \
+  --name ollama \
+  ollama/ollama
+```
+
+## Using Ollama in Docker
+
+### Run a Model
+
+Execute commands inside the running container:
+
+```bash
+docker exec -it ollama ollama run llama3.2
+```
+
+### Pull Models
+
+```bash
+docker exec -it ollama ollama pull gemma3
+```
+
+### List Models
+
+```bash
+docker exec -it ollama ollama list
+```
+
+### Check Running Models
+
+```bash
+docker exec -it ollama ollama ps
+```
+
+## Docker Compose
+
+Create a `docker-compose.yml` file:
+
+<CodeGroup>
+```yaml CPU Only
+services:
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  ollama:
+```
+
+```yaml NVIDIA GPU
+services:
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  ollama:
+```
+
+```yaml AMD GPU
+services:
+  ollama:
+    image: ollama/ollama:rocm
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    restart: unless-stopped
+
+volumes:
+  ollama:
+```
+</CodeGroup>
+
+Start with Docker Compose:
+
+```bash
+docker compose up -d
+```
+
+## API Access
+
+Access the Ollama API from the host machine:
+
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "gemma3",
+  "prompt": "Why is the sky blue?",
+  "stream": false
+}'
+```
+
+From other containers in the same network:
+
+```bash
+curl http://ollama:11434/api/generate -d '{
+  "model": "gemma3",
+  "prompt": "Hello, world!"
+}'
+```
+
+## Configuration
+
+### Environment Variables
+
+Customize Ollama behavior with environment variables:
+
+```bash
+docker run -d --gpus=all \
+  -e OLLAMA_DEBUG=1 \
+  -e OLLAMA_HOST=0.0.0.0:11434 \
+  -e OLLAMA_KEEP_ALIVE=24h \
+  -v ollama:/root/.ollama \
+  -p 11434:11434 \
+  --name ollama \
+  ollama/ollama
+```
+
+| Variable | Description | Default |
+|----------|-------------|--------|
+| `OLLAMA_HOST` | Server bind address | `0.0.0.0:11434` |
+| `OLLAMA_DEBUG` | Enable debug logging | `0` |
+| `OLLAMA_MODELS` | Model storage path | `/root/.ollama/models` |
+| `OLLAMA_KEEP_ALIVE` | Model keep-alive time | `5m` |
+| `OLLAMA_NUM_PARALLEL` | Max parallel requests | `1` |
+| `OLLAMA_MAX_LOADED_MODELS` | Max concurrent models | `3` |
+| `OLLAMA_VULKAN` | Enable Vulkan acceleration | `0` |
+| `JETSON_JETPACK` | JetPack version (5 or 6) | Auto-detect |
+
+### Custom Model Location
+
+Mount a custom directory for models:
+
+```bash
+docker run -d --gpus=all \
+  -v /path/to/models:/root/.ollama \
+  -p 11434:11434 \
+  --name ollama \
+  ollama/ollama
+```
+
+### Using a Proxy
+
+Configure proxy settings:
+
+```bash
+docker run -d --gpus=all \
+  -e HTTPS_PROXY=https://proxy.example.com \
+  -v ollama:/root/.ollama \
+  -p 11434:11434 \
+  --name ollama \
+  ollama/ollama
+```
+
+### Custom CA Certificate
+
+For self-signed certificates, create a custom image:
+
+```dockerfile
+FROM ollama/ollama
+COPY my-ca.pem /usr/local/share/ca-certificates/my-ca.crt
+RUN update-ca-certificates
+```
+
+Build and run:
+
+```bash
+docker build -t ollama-with-ca .
+docker run -d --gpus=all \
+  -e HTTPS_PROXY=https://proxy.example.com \
+  -v ollama:/root/.ollama \
+  -p 11434:11434 \
+  --name ollama \
+  ollama-with-ca
+```
+
+## Networking
+
+### Expose on Network
+
+By default, Ollama binds to `0.0.0.0` in the container. Access from other machines:
+
+```bash
+curl http://your-server-ip:11434/api/tags
+```
+
+### Custom Network
+
+Create a custom Docker network for inter-container communication:
+
+```bash
+docker network create ollama-net
+
+docker run -d --gpus=all \
+  --network ollama-net \
+  -v ollama:/root/.ollama \
+  --name ollama \
+  ollama/ollama
+```
+
+## Updates
+
+Update the Ollama container:
+
+```bash
+# Pull the latest image
+docker pull ollama/ollama
+
+# Stop and remove old container
+docker stop ollama
+docker rm ollama
+
+# Start new container
+docker run -d --gpus=all \
+  -v ollama:/root/.ollama \
+  -p 11434:11434 \
+  --name ollama \
+  ollama/ollama
+```
+
+Your models are preserved in the `ollama` volume.
+
+## Logs and Debugging
+
+### View Container Logs
+
+```bash
+docker logs ollama
+```
+
+### Follow Logs in Real-time
+
+```bash
+docker logs -f ollama
+```
+
+### Enable Debug Mode
+
+```bash
+docker run -d --gpus=all \
+  -e OLLAMA_DEBUG=1 \
+  -v ollama:/root/.ollama \
+  -p 11434:11434 \
+  --name ollama \
+  ollama/ollama
+```
+
+### Interactive Shell
+
+```bash
+docker exec -it ollama /bin/bash
+```
+
+## Troubleshooting
+
+### GPU Not Detected
+
+**For NVIDIA:**
+
+1. Verify the container runtime:
+   ```bash
+   docker run --rm --gpus all ubuntu nvidia-smi
+   ```
+
+2. Check Docker daemon configuration:
+   ```bash
+   cat /etc/docker/daemon.json
+   ```
+
+3. Ensure nvidia-container-toolkit is installed
+
+**For AMD:**
+
+1. Check device permissions:
+   ```bash
+   ls -l /dev/kfd /dev/dri
+   ```
+
+2. Add appropriate group permissions:
+   ```bash
+   docker run -d --device /dev/kfd --device /dev/dri \
+     --group-add video --group-add render \
+     -v ollama:/root/.ollama \
+     -p 11434:11434 \
+     ollama/ollama:rocm
+   ```
+
+### Container Keeps Restarting
+
+1. Check logs for errors:
+   ```bash
+   docker logs ollama
+   ```
+
+2. Verify port availability:
+   ```bash
+   netstat -tuln | grep 11434
+   ```
+
+3. Check system resources:
+   ```bash
+   docker stats ollama
+   ```
+
+### Cgroup Issues on Linux
+
+If GPU discovery fails after some time, disable systemd cgroup management in Docker.
+
+Edit `/etc/docker/daemon.json`:
+
+```json
+{
+  "exec-opts": ["native.cgroupdriver=cgroupfs"]
+}
+```
+
+Restart Docker:
+
+```bash
+sudo systemctl restart docker
+```
+
+## Browse More Models
+
+Explore available models at [ollama.com/library](https://ollama.com/library).
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/api">
+    Integrate Ollama API in your applications
+  </Card>
+  <Card title="GPU Configuration" icon="microchip" href="/gpu">
+    Optimize GPU settings and performance
+  </Card>
+  <Card title="Linux Setup" icon="linux" href="/platforms/linux">
+    Install Ollama directly on Linux
+  </Card>
+  <Card title="Model Library" icon="book" href="https://ollama.com/library">
+    Browse available models
+  </Card>
+</CardGroup>

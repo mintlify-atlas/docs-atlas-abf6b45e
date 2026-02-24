@@ -1,0 +1,295 @@
+---
+title: macOS
+description: Install and run Ollama on macOS with native Apple Silicon and Intel support
+---
+
+## System Requirements
+
+- **macOS:** Sonoma (v14) or newer
+- **Processor:** Apple M series (CPU and GPU support) or Intel x86 (CPU only)
+
+## Installation
+
+### Quick Install
+
+Install Ollama using the install script:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+### Manual Download
+
+Alternatively, [download Ollama.dmg](https://ollama.com/download/Ollama.dmg) and install:
+
+<Steps>
+  <Step title="Mount the DMG">
+    Double-click the downloaded `Ollama.dmg` file.
+  </Step>
+
+  <Step title="Drag to Applications">
+    Drag the Ollama application to your system-wide `Applications` folder.
+
+    <Note>
+    Installing to the system `Applications` folder is recommended for automatic PATH configuration.
+    </Note>
+  </Step>
+
+  <Step title="Launch Ollama">
+    Open Ollama from your Applications folder.
+
+    On first launch, Ollama will verify the CLI is in your PATH and prompt for permission to create a symlink in `/usr/local/bin` if needed.
+  </Step>
+</Steps>
+
+## Using Ollama
+
+Once installed, Ollama runs in the background and the `ollama` command is available in Terminal.
+
+### Run Your First Model
+
+```bash
+ollama run gemma3
+```
+
+### Check Running Models
+
+```bash
+ollama ps
+```
+
+### View Installed Models
+
+```bash
+ollama list
+```
+
+## Configuration
+
+### File Locations
+
+Ollama stores files in the following locations:
+
+| Location | Purpose |
+|----------|--------|
+| `~/.ollama` | Models and configuration |
+| `~/.ollama/logs` | Log files |
+| `~/.ollama/logs/app.log` | GUI application logs |
+| `~/.ollama/logs/server.log` | Server logs |
+| `<install-location>/Ollama.app/Contents/Resources/ollama` | CLI binary |
+
+### Environment Variables
+
+Set environment variables using `launchctl`:
+
+```bash
+launchctl setenv OLLAMA_HOST "0.0.0.0:11434"
+```
+
+Then restart the Ollama application.
+
+### Common Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|--------|
+| `OLLAMA_HOST` | Server bind address | `127.0.0.1:11434` |
+| `OLLAMA_MODELS` | Model storage location | `~/.ollama/models` |
+| `OLLAMA_DEBUG` | Enable debug logging | `0` |
+| `OLLAMA_NUM_PARALLEL` | Max parallel requests | `1` |
+| `OLLAMA_KEEP_ALIVE` | Model keep-alive duration | `5m` |
+
+### Changing Model Storage Location
+
+If your home directory doesn't have enough space for large models:
+
+```bash
+launchctl setenv OLLAMA_MODELS "/Volumes/External/ollama-models"
+```
+
+Restart the Ollama application after changing the location.
+
+## Custom Installation Location
+
+To install Ollama somewhere other than the system `Applications` folder:
+
+<Steps>
+  <Step title="Place the Application">
+    Move `Ollama.app` to your desired location.
+  </Step>
+
+  <Step title="Add CLI to PATH">
+    Ensure the CLI binary or a symlink is in your PATH:
+
+    ```bash
+    sudo ln -s /your/custom/path/Ollama.app/Contents/Resources/ollama /usr/local/bin/ollama
+    ```
+  </Step>
+
+  <Step title="Launch and Decline Move Prompt">
+    On first start, decline the "Move to Applications?" request.
+  </Step>
+</Steps>
+
+## Apple Silicon (M-series) Benefits
+
+Ollama is optimized for Apple Silicon:
+
+- **Native ARM64:** Built specifically for M1, M2, M3, and M4 chips
+- **Unified Memory:** Efficient GPU acceleration using shared memory architecture
+- **Metal Support:** Hardware-accelerated inference via Metal Performance Shaders
+- **Neural Engine:** Automatic optimization for Apple's Neural Engine
+
+## Updates
+
+Ollama automatically checks for updates. When an update is available:
+
+1. Click the Ollama icon in the menu bar
+2. Select "Restart to update"
+
+Or download the latest version manually from [ollama.com/download](https://ollama.com/download/).
+
+## Disable Auto-Start on Login
+
+If you prefer Ollama not to start automatically:
+
+1. Open **System Settings**
+2. Search for "Login Items"
+3. Find **Ollama** under "Allow in the Background"
+4. Click the toggle to disable
+
+This setting persists across updates.
+
+## Logs and Debugging
+
+### View Application Logs
+
+```bash
+cat ~/.ollama/logs/app.log
+```
+
+### View Server Logs
+
+```bash
+cat ~/.ollama/logs/server.log
+```
+
+### Enable Debug Mode
+
+```bash
+launchctl setenv OLLAMA_DEBUG "1"
+```
+
+Restart the Ollama application, then check logs for detailed output.
+
+### Real-time Log Monitoring
+
+```bash
+tail -f ~/.ollama/logs/server.log
+```
+
+## Troubleshooting
+
+### Ollama Command Not Found
+
+If `ollama` is not recognized in Terminal:
+
+1. Check if the symlink exists:
+   ```bash
+   ls -l /usr/local/bin/ollama
+   ```
+
+2. If missing, create it manually:
+   ```bash
+   sudo ln -s /Applications/Ollama.app/Contents/Resources/ollama /usr/local/bin/ollama
+   ```
+
+3. Verify `/usr/local/bin` is in your PATH:
+   ```bash
+   echo $PATH
+   ```
+
+### Ollama Not Starting
+
+1. Check if the process is running:
+   ```bash
+   ps aux | grep ollama
+   ```
+
+2. Try launching from Terminal for error output:
+   ```bash
+   /Applications/Ollama.app/Contents/MacOS/Ollama
+   ```
+
+3. Check system logs:
+   ```bash
+   log show --predicate 'process == "Ollama"' --last 5m
+   ```
+
+### Insufficient Storage Space
+
+Models can require tens to hundreds of GB:
+
+1. Check available space:
+   ```bash
+   df -h ~
+   ```
+
+2. Change model storage location:
+   ```bash
+   launchctl setenv OLLAMA_MODELS "/Volumes/External/models"
+   ```
+
+3. Restart Ollama
+
+### Performance Issues
+
+- **Close other applications:** Free up RAM for model inference
+- **Check Activity Monitor:** Look for high CPU/memory usage
+- **Try smaller models:** Start with models like `gemma2:2b` or `llama3.2:1b`
+- **Update macOS:** Ensure you're running the latest version for best Metal performance
+
+## Uninstallation
+
+To completely remove Ollama from your Mac:
+
+```bash
+sudo rm -rf /Applications/Ollama.app
+sudo rm /usr/local/bin/ollama
+rm -rf ~/Library/Application\ Support/Ollama
+rm -rf ~/Library/Saved\ Application\ State/com.electron.ollama.savedState
+rm -rf ~/Library/Caches/com.electron.ollama
+rm -rf ~/Library/Caches/ollama
+rm -rf ~/Library/WebKit/com.electron.ollama
+rm -rf ~/.ollama
+```
+
+## API Access
+
+Ollama's REST API is available at `http://localhost:11434`:
+
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "gemma3",
+  "prompt": "Why is the sky blue?",
+  "stream": false
+}'
+```
+
+See the [API documentation](/api) for complete reference.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Get started with your first model
+  </Card>
+  <Card title="Model Library" icon="book" href="https://ollama.com/library">
+    Browse available models
+  </Card>
+  <Card title="API Reference" icon="code" href="/api">
+    Integrate Ollama into your apps
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli">
+    Master the command-line interface
+  </Card>
+</CardGroup>

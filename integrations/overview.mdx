@@ -1,0 +1,221 @@
+---
+title: Integrations Overview
+description: Launch AI agents and connect to coding tools with Ollama
+---
+
+Ollama provides a powerful launcher system that lets you quickly connect local and cloud models to coding agents, IDE extensions, and productivity tools.
+
+## The Launch System
+
+The `ollama launch` command provides an interactive way to configure and run integrations:
+
+```bash
+ollama launch
+```
+
+This opens an interactive menu where you can:
+
+<Steps>
+  <Step title="Select an integration">
+    Choose from coding agents, IDEs, or assistants
+  </Step>
+  <Step title="Pick a model">
+    Select from your local models or cloud models with large context windows
+  </Step>
+  <Step title="Launch instantly">
+    Ollama handles configuration and starts the integration
+  </Step>
+</Steps>
+
+### Direct Launch
+
+You can also launch specific integrations directly:
+
+```bash
+ollama launch claude
+ollama launch opencode
+ollama launch openclaw
+```
+
+### Configuration Options
+
+<CodeGroup>
+
+```bash Quick setup
+# Interactive setup and launch
+ollama launch claude
+```
+
+```bash Specify model
+# Use a specific model
+ollama launch opencode --model qwen3-coder:480b-cloud
+```
+
+```bash Configure only
+# Configure without launching
+ollama launch droid --config
+```
+
+```bash Pass arguments
+# Pass extra args to the integration
+ollama launch codex -- --sandbox workspace-write
+```
+
+</CodeGroup>
+
+## Coding Agents
+
+Autonomous coding assistants that can read, modify, and execute code:
+
+<CardGroup cols={2}>
+  <Card title="Claude Code" icon="code" href="/integrations/claude-code">
+    Anthropic's coding tool with subagents
+  </Card>
+  <Card title="Codex" icon="terminal" href="/integrations/codex">
+    OpenAI's open-source coding agent
+  </Card>
+  <Card title="OpenCode" icon="window" href="/integrations/opencode">
+    Anomaly's open-source terminal coding agent
+  </Card>
+  <Card title="Droid" icon="robot" href="/integrations/droid">
+    Factory's coding agent for terminal and IDEs
+  </Card>
+</CardGroup>
+
+### Key Features
+
+- **Multi-file editing** — Make changes across your entire codebase
+- **Tool calling** — Execute shell commands and run tests
+- **Context-aware** — Understands project structure and dependencies
+- **Subagents** — Some tools support delegating tasks to specialized agents
+
+<Note>
+  Coding agents work best with models that have **at least 64k token context windows**. See [Context Length](/context-length) for configuration.
+</Note>
+
+## Personal AI Assistant
+
+<Card title="OpenClaw" icon="message" href="/integrations/openclaw">
+  Personal AI with 100+ skills across WhatsApp, Telegram, Slack, Discord, and more
+</Card>
+
+OpenClaw bridges messaging platforms to AI models:
+
+- Connect your favorite messaging apps
+- Access 100+ built-in skills and plugins
+- Runs a local gateway for secure, private AI
+- Supports both local and cloud models
+
+## IDE Extensions
+
+Native integrations for popular development environments:
+
+<CardGroup cols={2}>
+  <Card title="VS Code" icon="microsoft" href="/integrations/ide-extensions#vs-code">
+    Microsoft's popular code editor
+  </Card>
+  <Card title="JetBrains" icon="code" href="/integrations/ide-extensions#jetbrains">
+    IntelliJ, PyCharm, and other JetBrains IDEs
+  </Card>
+  <Card title="Zed" icon="window" href="/integrations/ide-extensions#zed">
+    High-performance collaborative editor
+  </Card>
+  <Card title="Cline" icon="robot" href="/integrations/ide-extensions#cline">
+    VS Code extension for autonomous coding
+  </Card>
+</CardGroup>
+
+See the [IDE Extensions](/integrations/ide-extensions) page for setup instructions.
+
+## Official Libraries
+
+Official SDKs for Python and JavaScript make it easy to integrate Ollama into your applications:
+
+- **[ollama-python](https://github.com/ollama/ollama-python)** — Python library with async support
+- **[ollama-js](https://github.com/ollama/ollama-js)** — JavaScript/TypeScript library for Node and browsers
+
+See the [Libraries](/integrations/libraries) page for usage examples and community SDKs.
+
+## How Launch Works
+
+The `ollama launch` system automatically:
+
+1. **Detects installation** — Checks if the integration binary is available
+2. **Offers installation** — For tools like OpenClaw, offers to install via npm
+3. **Manages configuration** — Updates config files with your selected models
+4. **Handles authentication** — Signs you in for cloud models if needed
+5. **Syncs settings** — Keeps your preferences across launches
+
+### Saved Configuration
+
+Ollama saves your model preferences per integration:
+
+```bash
+# First time
+ollama launch claude
+# → Interactive model selection
+
+# Next time
+ollama launch claude
+# → Uses your saved model
+```
+
+### Model Requirements
+
+<Tip>
+  Most coding integrations need **large context windows** (64k-128k tokens) to understand entire codebases.
+</Tip>
+
+**Recommended cloud models:**
+- `minimax-m2.5:cloud` — Fast, efficient coding (200k context)
+- `glm-5:cloud` — Reasoning and code generation (200k context)
+- `kimi-k2.5:cloud` — Multimodal reasoning with subagents (260k context)
+- `qwen3-coder:480b-cloud` — Advanced code generation (260k context)
+
+**Recommended local models:**
+- `glm-4.7-flash` — Local reasoning model (~25GB VRAM)
+- `qwen3:8b` — Efficient all-purpose assistant (~11GB VRAM)
+
+## Aliases and Model Routing
+
+Some integrations like Claude Code and Codex support **model aliases** for routing requests:
+
+- `primary` — Default model for all requests
+- `fast` — Lightweight model for quick tasks
+- Custom aliases — Route specific agent types to different models
+
+Ollama configures these automatically during launch.
+
+## Environment Variables
+
+Integrations respect these environment variables:
+
+- `OLLAMA_HOST` — Ollama server URL (default: `http://localhost:11434`)
+- `OLLAMA_API_KEY` — API key when connecting to ollama.com
+
+## Community Integrations
+
+Ollama works with hundreds of community tools. See the main [README](https://github.com/ollama/ollama#community-integrations) for:
+
+- Chat interfaces and web UIs
+- Frameworks and agent platforms
+- RAG and knowledge bases
+- Productivity apps
+- Development tools
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Try a Coding Agent" icon="rocket" href="/integrations/opencode">
+    Get started with OpenCode in your terminal
+  </Card>
+  <Card title="Setup IDE Extension" icon="code" href="/integrations/ide-extensions">
+    Configure VS Code or JetBrains
+  </Card>
+  <Card title="Install OpenClaw" icon="message" href="/integrations/openclaw">
+    Connect messaging apps to AI
+  </Card>
+  <Card title="Use Libraries" icon="book" href="/integrations/libraries">
+    Build with Python or JavaScript SDKs
+  </Card>
+</CardGroup>

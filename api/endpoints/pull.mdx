@@ -1,0 +1,211 @@
+---
+title: 'POST /api/pull'
+description: 'Download a model from the Ollama library'
+---
+
+Download a model from the Ollama model library. This endpoint supports streaming progress updates during the download.
+
+## Request
+
+### Endpoint
+
+```
+POST /api/pull
+```
+
+### Request Body
+
+<ParamField path="model" type="string" required>
+  Name of the model to pull (e.g., `llama3.2`, `mistral:7b-instruct`, `codellama:latest`)
+</ParamField>
+
+<ParamField path="stream" type="boolean" default="true">
+  Enable streaming of download progress updates
+</ParamField>
+
+<ParamField path="insecure" type="boolean" default="false">
+  Deprecated: This parameter is ignored
+</ParamField>
+
+<ParamField path="username" type="string">
+  Deprecated: This parameter is ignored
+</ParamField>
+
+<ParamField path="password" type="string">
+  Deprecated: This parameter is ignored
+</ParamField>
+
+## Response
+
+### Response Fields
+
+<ResponseField name="status" type="string">
+  Status message describing current operation (e.g., "pulling manifest", "downloading")
+</ResponseField>
+
+<ResponseField name="digest" type="string">
+  Digest of the layer being downloaded
+</ResponseField>
+
+<ResponseField name="total" type="integer">
+  Total size of the layer in bytes
+</ResponseField>
+
+<ResponseField name="completed" type="integer">
+  Bytes downloaded so far
+</ResponseField>
+
+## Examples
+
+### Pull a Model (Streaming)
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:11434/api/pull -d '{
+  "model": "llama3.2"
+}'
+```
+
+```python Python
+import requests
+import json
+
+response = requests.post(
+    'http://localhost:11434/api/pull',
+    json={'model': 'llama3.2'},
+    stream=True
+)
+
+for line in response.iter_lines():
+    if line:
+        progress = json.loads(line)
+        if 'total' in progress and 'completed' in progress:
+            percent = (progress['completed'] / progress['total']) * 100
+            print(f"{progress['status']}: {percent:.1f}%")
+        else:
+            print(progress['status'])
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:11434/api/pull', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ model: 'llama3.2' })
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const chunk = JSON.parse(decoder.decode(value));
+  if (chunk.total && chunk.completed) {
+    const percent = (chunk.completed / chunk.total) * 100;
+    console.log(`${chunk.status}: ${percent.toFixed(1)}%`);
+  } else {
+    console.log(chunk.status);
+  }
+}
+```
+
+</CodeGroup>
+
+### Example Streaming Response
+
+```json
+{"status":"pulling manifest"}
+{"status":"pulling 8daa9615cce3","digest":"sha256:8daa9615cce30c259a9555b1cc250d461d1bc69980a274b44d7eda0be78076d8","total":4661211936,"completed":0}
+{"status":"pulling 8daa9615cce3","digest":"sha256:8daa9615cce30c259a9555b1cc250d461d1bc69980a274b44d7eda0be78076d8","total":4661211936,"completed":1048576}
+{"status":"pulling 8daa9615cce3","digest":"sha256:8daa9615cce30c259a9555b1cc250d461d1bc69980a274b44d7eda0be78076d8","total":4661211936,"completed":4661211936}
+{"status":"verifying sha256 digest"}
+{"status":"writing manifest"}
+{"status":"success"}
+```
+
+### Pull with Specific Tag
+
+```bash
+curl http://localhost:11434/api/pull -d '{
+  "model": "mistral:7b-instruct-q4_K_M"
+}'
+```
+
+### Non-Streaming Pull
+
+```bash
+curl http://localhost:11434/api/pull -d '{
+  "model": "llama3.2",
+  "stream": false
+}'
+```
+
+### Example Non-Streaming Response
+
+```json
+{
+  "status": "success"
+}
+```
+
+### Pull with Progress Bar (Python)
+
+```python
+import requests
+import json
+from tqdm import tqdm
+
+response = requests.post(
+    'http://localhost:11434/api/pull',
+    json={'model': 'llama3.2'},
+    stream=True
+)
+
+progress_bars = {}
+
+for line in response.iter_lines():
+    if line:
+        data = json.loads(line)
+        
+        if 'digest' in data and data.get('total'):
+            digest = data['digest'][:12]  # Short digest for display
+            
+            if digest not in progress_bars:
+                progress_bars[digest] = tqdm(
+                    total=data['total'],
+                    desc=f"{data['status']} {digest}",
+                    unit='B',
+                    unit_scale=True
+                )
+            
+            progress_bars[digest].update(
+                data['completed'] - progress_bars[digest].n
+            )
+            
+            if data['completed'] >= data['total']:
+                progress_bars[digest].close()
+        else:
+            print(data.get('status', ''))
+```
+
+## Error Responses
+
+<ResponseField name="error" type="string">
+  Description of the error
+</ResponseField>
+
+### Common Errors
+
+- **400 Bad Request**: Invalid model name format
+- **404 Not Found**: Model not found in the library
+- **500 Internal Server Error**: Download or verification error
+
+<Note>
+Model names follow the format `name:tag`. If no tag is specified, `:latest` is assumed.
+</Note>
+
+<Note>
+Pulling a model that already exists will check for updates and download only if a newer version is available.
+</Note>

@@ -1,0 +1,173 @@
+---
+title: 'POST /api/push'
+description: 'Upload a model to the Ollama library'
+---
+
+Upload a model to a model library. Requires proper authentication and permissions.
+
+## Request
+
+### Endpoint
+
+```
+POST /api/push
+```
+
+### Request Body
+
+<ParamField path="model" type="string" required>
+  Name of the model to push (e.g., `namespace/model:tag`)
+</ParamField>
+
+<ParamField path="stream" type="boolean" default="true">
+  Enable streaming of upload progress updates
+</ParamField>
+
+<ParamField path="insecure" type="boolean" default="false">
+  Allow insecure connections to the registry
+</ParamField>
+
+<ParamField path="username" type="string">
+  Username for registry authentication
+</ParamField>
+
+<ParamField path="password" type="string">
+  Password for registry authentication
+</ParamField>
+
+## Response
+
+### Response Fields
+
+<ResponseField name="status" type="string">
+  Status message describing current operation (e.g., "pushing manifest", "uploading")
+</ResponseField>
+
+<ResponseField name="digest" type="string">
+  Digest of the layer being uploaded
+</ResponseField>
+
+<ResponseField name="total" type="integer">
+  Total size of the layer in bytes
+</ResponseField>
+
+<ResponseField name="completed" type="integer">
+  Bytes uploaded so far
+</ResponseField>
+
+## Examples
+
+### Push a Model (Streaming)
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:11434/api/push -d '{
+  "model": "myuser/my-custom-model"
+}'
+```
+
+```python Python
+import requests
+import json
+
+response = requests.post(
+    'http://localhost:11434/api/push',
+    json={'model': 'myuser/my-custom-model'},
+    stream=True
+)
+
+for line in response.iter_lines():
+    if line:
+        progress = json.loads(line)
+        if 'total' in progress and 'completed' in progress:
+            percent = (progress['completed'] / progress['total']) * 100
+            print(f"{progress['status']}: {percent:.1f}%")
+        else:
+            print(progress['status'])
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:11434/api/push', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ model: 'myuser/my-custom-model' })
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const chunk = JSON.parse(decoder.decode(value));
+  if (chunk.total && chunk.completed) {
+    const percent = (chunk.completed / chunk.total) * 100;
+    console.log(`${chunk.status}: ${percent.toFixed(1)}%`);
+  } else {
+    console.log(chunk.status);
+  }
+}
+```
+
+</CodeGroup>
+
+### Example Streaming Response
+
+```json
+{"status":"retrieving manifest"}
+{"status":"pushing 8daa9615cce3","digest":"sha256:8daa9615cce30c259a9555b1cc250d461d1bc69980a274b44d7eda0be78076d8","total":4661211936,"completed":0}
+{"status":"pushing 8daa9615cce3","digest":"sha256:8daa9615cce30c259a9555b1cc250d461d1bc69980a274b44d7eda0be78076d8","total":4661211936,"completed":1048576}
+{"status":"pushing 8daa9615cce3","digest":"sha256:8daa9615cce30c259a9555b1cc250d461d1bc69980a274b44d7eda0be78076d8","total":4661211936,"completed":4661211936}
+{"status":"pushing manifest"}
+{"status":"success"}
+```
+
+### Push with Authentication
+
+```bash
+curl http://localhost:11434/api/push -d '{
+  "model": "myuser/my-custom-model",
+  "username": "myuser",
+  "password": "mypassword"
+}'
+```
+
+### Non-Streaming Push
+
+```bash
+curl http://localhost:11434/api/push -d '{
+  "model": "myuser/my-custom-model",
+  "stream": false
+}'
+```
+
+### Example Non-Streaming Response
+
+```json
+{
+  "status": "success"
+}
+```
+
+## Error Responses
+
+<ResponseField name="error" type="string">
+  Description of the error
+</ResponseField>
+
+### Common Errors
+
+- **400 Bad Request**: Invalid model name or missing required fields
+- **401 Unauthorized**: Authentication required or invalid credentials
+- **404 Not Found**: Model not found locally
+- **500 Internal Server Error**: Upload or verification error
+
+<Note>
+Before pushing a model, ensure you're authenticated with the registry. Models must follow the naming convention `namespace/model:tag`.
+</Note>
+
+<Note>
+The model must exist locally before it can be pushed. Use `/api/create` to create a model first if needed.
+</Note>

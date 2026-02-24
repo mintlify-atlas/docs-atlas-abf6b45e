@@ -1,0 +1,327 @@
+---
+title: Claude Code
+description: Anthropic's agentic coding tool with subagent support
+icon: code
+---
+
+Claude Code is Anthropic's agentic coding tool that can read, modify, and execute code in your working directory. Through Ollama's Anthropic-compatible API, you can use open models like `glm-4.7`, `qwen3-coder`, and `gpt-oss` with Claude Code.
+
+<img src="https://files.ollama.com/claude-code.png" alt="Claude Code with Ollama" />
+
+## Installation
+
+Install Claude Code from the official sources:
+
+<CodeGroup>
+
+```bash macOS / Linux
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+```powershell Windows
+irm https://claude.ai/install.ps1 | iex
+```
+
+</CodeGroup>
+
+Learn more at [code.claude.com/docs](https://code.claude.com/docs/en/overview).
+
+## Quick Setup
+
+```bash
+ollama launch claude
+```
+
+Ollama automatically:
+
+<Steps>
+  <Step title="Selects a model">
+    Interactive picker with local and cloud models
+  </Step>
+  <Step title="Configures aliases">
+    Sets up model routing (primary, fast, subagents)
+  </Step>
+  <Step title="Launches Claude Code">
+    Starts the tool in your current directory
+  </Step>
+</Steps>
+
+### Configuration Only
+
+```bash
+ollama launch claude --config
+```
+
+### Specify a Model
+
+```bash
+ollama launch claude --model gpt-oss:120b
+```
+
+## Manual Setup
+
+To manually configure Claude Code for Ollama:
+
+<Steps>
+  <Step title="Set environment variables">
+    ```bash
+    export ANTHROPIC_AUTH_TOKEN=ollama
+    export ANTHROPIC_API_KEY=""
+    export ANTHROPIC_BASE_URL=http://localhost:11434
+    ```
+  </Step>
+  <Step title="Run Claude Code with a model">
+    ```bash
+    claude --model gpt-oss:20b
+    ```
+  </Step>
+</Steps>
+
+### Inline Environment Variables
+
+```bash
+ANTHROPIC_AUTH_TOKEN=ollama \
+ANTHROPIC_BASE_URL=http://localhost:11434 \
+ANTHROPIC_API_KEY="" \
+claude --model qwen3-coder
+```
+
+## Model Requirements
+
+<Warning>
+  Claude Code requires a **large context window** (at least 64k tokens) to understand your codebase.
+</Warning>
+
+See [Context Length](/context-length) for how to adjust context length in Ollama.
+
+## Recommended Models
+
+### Cloud Models
+
+<CardGroup cols={2}>
+  <Card title="qwen3-coder:480b-cloud">
+    Advanced code generation (260k context)
+  </Card>
+  <Card title="gpt-oss:120b-cloud">
+    Large reasoning model (130k context)
+  </Card>
+  <Card title="glm-5:cloud">
+    Reasoning and code generation (200k context)
+  </Card>
+  <Card title="deepseek-v3.1:671b-cloud">
+    Massive reasoning model (160k context)
+  </Card>
+</CardGroup>
+
+Explore more at [ollama.com/search?c=cloud](https://ollama.com/search?c=cloud).
+
+### Local Models
+
+<CardGroup cols={2}>
+  <Card title="qwen3-coder">
+    Efficient code generation (~11GB VRAM)
+  </Card>
+  <Card title="glm-4.7">
+    Reasoning and coding (~25GB VRAM)
+  </Card>
+  <Card title="gpt-oss:20b">
+    OpenAI-style model for coding (~16GB VRAM)
+  </Card>
+</CardGroup>
+
+## Model Aliases
+
+Claude Code uses model aliases to route different types of requests:
+
+- **primary** — Main model for complex tasks
+- **fast** — Lightweight model for quick operations
+
+Ollama configures these automatically when you run `ollama launch claude`. Cloud models automatically populate the `fast` alias.
+
+<Accordion title="How aliases work">
+When Claude Code makes a request with a model alias (e.g., `@fast`), Ollama's Anthropic-compatible API translates it to the configured model. This lets you optimize cost and performance by routing simple tasks to smaller models.
+</Accordion>
+
+## Subagent Support
+
+Claude Code can delegate tasks to specialized subagents. With Ollama, you can configure different models for different agent types:
+
+```bash
+ollama launch claude
+# → Select primary model (e.g., glm-5:cloud)
+# → Ollama prompts for subagent configuration
+```
+
+### Example Subagent Setup
+
+- **Primary**: `glm-5:cloud` (main reasoning)
+- **Fast**: `qwen3:8b` (quick tasks)
+- **Code**: `qwen3-coder:480b-cloud` (code generation)
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="Multi-file Editing" icon="files">
+    Make changes across your entire codebase
+  </Card>
+  <Card title="Tool Calling" icon="wrench">
+    Execute shell commands and run tests
+  </Card>
+  <Card title="Context-Aware" icon="brain">
+    Understands project structure and dependencies
+  </Card>
+  <Card title="Subagents" icon="users">
+    Delegate specialized tasks to different models
+  </Card>
+</CardGroup>
+
+## Usage Examples
+
+### Start in a Project Directory
+
+```bash
+cd ~/projects/my-app
+ollama launch claude
+```
+
+### Ask Claude Code to Make Changes
+
+```bash
+claude "Add error handling to the API routes"
+```
+
+### Pass Extra Arguments
+
+```bash
+ollama launch claude -- --sandbox workspace-write
+```
+
+### Review Changes Before Applying
+
+Claude Code shows diffs for proposed changes. Press:
+
+- `y` — Accept changes
+- `n` — Reject changes
+- `e` — Edit manually
+
+## Connecting to ollama.com
+
+To use cloud models hosted on ollama.com instead of running locally:
+
+<Steps>
+  <Step title="Create an API key">
+    Go to [ollama.com/settings/keys](https://ollama.com/settings/keys)
+  </Step>
+  <Step title="Export the key">
+    ```bash
+    export OLLAMA_API_KEY=your-key-here
+    ```
+  </Step>
+  <Step title="Update base URL">
+    ```bash
+    export ANTHROPIC_BASE_URL=https://ollama.com
+    export ANTHROPIC_AUTH_TOKEN=ollama
+    export ANTHROPIC_API_KEY=$OLLAMA_API_KEY
+    ```
+  </Step>
+  <Step title="Run Claude Code">
+    ```bash
+    claude --model glm-5:cloud
+    ```
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### "Model not found" Error
+
+Ensure the model is pulled:
+
+```bash
+ollama pull gpt-oss:20b
+ollama list
+```
+
+### Context Window Too Small
+
+Increase the context window for local models:
+
+```bash
+ollama run qwen3-coder /set parameter num_ctx 65536
+```
+
+See [Context Length](/context-length) for details.
+
+### Slow Performance
+
+Considerations for better performance:
+
+- Use cloud models for large context windows
+- Use smaller local models for quick tasks
+- Ensure you have sufficient VRAM for the model
+- Close other applications using GPU resources
+
+### Authentication Issues
+
+Verify environment variables:
+
+```bash
+env | grep ANTHROPIC
+```
+
+Expected output:
+```
+ANTHROPIC_AUTH_TOKEN=ollama
+ANTHROPIC_API_KEY=
+ANTHROPIC_BASE_URL=http://localhost:11434
+```
+
+## Advanced Configuration
+
+### Persistent Environment Variables
+
+Add to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.):
+
+```bash
+export ANTHROPIC_AUTH_TOKEN=ollama
+export ANTHROPIC_API_KEY=""
+export ANTHROPIC_BASE_URL=http://localhost:11434
+```
+
+### Custom Aliases
+
+Manually configure aliases in Ollama's saved config:
+
+```bash
+~/.ollama/integrations/claude.json
+```
+
+<Accordion title="Example configuration">
+```json
+{
+  "models": ["glm-5:cloud"],
+  "aliases": {
+    "primary": "glm-5:cloud",
+    "fast": "qwen3:8b",
+    "code": "qwen3-coder:480b-cloud"
+  }
+}
+```
+</Accordion>
+
+## Learn More
+
+<CardGroup cols={2}>
+  <Card title="Claude Code Docs" icon="book" href="https://code.claude.com/docs/en/overview">
+    Official Claude Code documentation
+  </Card>
+  <Card title="Anthropic API" icon="code" href="/api/anthropic-compatibility">
+    Ollama's Anthropic-compatible API
+  </Card>
+  <Card title="Context Length" icon="brain" href="/context-length">
+    Configure model context windows
+  </Card>
+  <Card title="Tool Calling" icon="wrench" href="/capabilities/tool-calling">
+    How tool calling works in Ollama
+  </Card>
+</CardGroup>

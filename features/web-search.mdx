@@ -1,0 +1,261 @@
+---
+title: Web Search
+description: Augment models with real-time web information to reduce hallucinations.
+---
+
+Ollama's web search API can be used to augment models with the latest information to reduce hallucinations and improve accuracy.
+
+Web search is provided as a REST API with deeper tool integrations in the Python and JavaScript libraries. This enables models to conduct long-running research tasks with access to current information.
+
+## Authentication
+
+For access to Ollama's web search API, create an [API key](https://ollama.com/settings/keys). A free Ollama account is required.
+
+## Web search API
+
+Performs a web search for a single query and returns relevant results.
+
+### Request
+
+`POST https://ollama.com/api/web_search`
+
+<ParamField path="query" type="string" required>
+  The search query string
+</ParamField>
+
+<ParamField path="max_results" type="integer" default="5">
+  Maximum results to return (max 10)
+</ParamField>
+
+### Response
+
+```json
+{
+  "results": [
+    {
+      "title": "Page title",
+      "url": "https://example.com",
+      "content": "Relevant content snippet from the page"
+    }
+  ]
+}
+```
+
+### Examples
+
+<Note>
+  Ensure `OLLAMA_API_KEY` is set or it must be passed in the Authorization header.
+</Note>
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl https://ollama.com/api/web_search \
+      --header "Authorization: Bearer $OLLAMA_API_KEY" \
+      -d '{
+        "query":"what is ollama?"
+      }'
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ollama
+    response = ollama.web_search("What is Ollama?")
+    print(response)
+    ```
+
+    More examples: [Python web search example](https://github.com/ollama/ollama-python/blob/main/examples/web-search.py)
+  </Tab>
+  <Tab title="JavaScript">
+    ```tsx
+    import { Ollama } from "ollama";
+
+    const client = new Ollama();
+    const results = await client.webSearch("what is ollama?");
+    console.log(JSON.stringify(results, null, 2));
+    ```
+
+    More examples: [JavaScript web search example](https://github.com/ollama/ollama-js/blob/main/examples/websearch/websearch-tools.ts)
+  </Tab>
+</Tabs>
+
+## Web fetch API
+
+Fetches a single web page by URL and returns its content.
+
+### Request
+
+`POST https://ollama.com/api/web_fetch`
+
+<ParamField path="url" type="string" required>
+  The URL to fetch
+</ParamField>
+
+### Response
+
+```json
+{
+  "title": "Page title",
+  "content": "Main content of the web page",
+  "links": [
+    "https://example.com/page1",
+    "https://example.com/page2"
+  ]
+}
+```
+
+### Examples
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl --request POST \
+      --url https://ollama.com/api/web_fetch \
+      --header "Authorization: Bearer $OLLAMA_API_KEY" \
+      --header 'Content-Type: application/json' \
+      --data '{
+        "url": "ollama.com"
+      }'
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from ollama import web_fetch
+
+    result = web_fetch('https://ollama.com')
+    print(result)
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```tsx
+    import { Ollama } from "ollama";
+
+    const client = new Ollama();
+    const fetchResult = await client.webFetch("https://ollama.com");
+    console.log(JSON.stringify(fetchResult, null, 2));
+    ```
+  </Tab>
+</Tabs>
+
+## Building a search agent
+
+Use Ollama's web search API as a tool to build a mini search agent:
+
+```python
+from ollama import chat, web_fetch, web_search
+
+available_tools = {'web_search': web_search, 'web_fetch': web_fetch}
+
+messages = [{'role': 'user', 'content': "what is ollama's new engine"}]
+
+while True:
+  response = chat(
+    model='qwen3:4b',
+    messages=messages,
+    tools=[web_search, web_fetch],
+    think=True
+  )
+  if response.message.thinking:
+    print('Thinking: ', response.message.thinking)
+  if response.message.content:
+    print('Content: ', response.message.content)
+  messages.append(response.message)
+  if response.message.tool_calls:
+    print('Tool calls: ', response.message.tool_calls)
+    for tool_call in response.message.tool_calls:
+      function_to_call = available_tools.get(tool_call.function.name)
+      if function_to_call:
+        args = tool_call.function.arguments
+        result = function_to_call(**args)
+        print('Result: ', str(result)[:200]+'...')
+        # Result is truncated for limited context lengths
+        messages.append({'role': 'tool', 'content': str(result)[:2000 * 4], 'tool_name': tool_call.function.name})
+      else:
+        messages.append({'role': 'tool', 'content': f'Tool {tool_call.function.name} not found', 'tool_name': tool_call.function.name})
+  else:
+    break
+```
+
+**Example output:**
+
+```
+Thinking: Okay, the user is asking about Ollama's new engine. I need to figure out what they're referring to...
+
+Tool calls: [ToolCall(function=Function(name='web_search', arguments={'max_results': 3, 'query': 'Ollama new engine'}))]
+Result: results=[WebSearchResult(content='# New model scheduling\n\n## September 23, 2025\n\nOllama now includes a significantly improved model scheduling system...
+
+Thinking: Okay, the user asked about Ollama's new engine. Let me look at the search results...
+
+Content: Ollama has introduced two key updates to its engine, both released in 2025:
+
+1. **Enhanced Model Scheduling (September 23, 2025)**
+   - Precision Memory Management
+   - Performance Gains: 85.54 tokens/s vs 52.02 tokens/s
+   - Multi-GPU Support
+
+2. **Multimodal Engine (May 15, 2025)**
+   - Vision Support for models like llama4:scout, gemma3
+   - Multimodal tasks including image identification
+```
+
+## Context length and agents
+
+Web search results can return thousands of tokens. It is recommended to increase the context length of the model to at least ~32000 tokens. Search agents work best with full context length. [Ollama's cloud models](https://docs.ollama.com/cloud) run at the full context length.
+
+```python
+response = chat(
+  model='qwen3:4b',
+  messages=messages,
+  tools=[web_search],
+  options={'num_ctx': 32768}  # Increase context length
+)
+```
+
+## MCP Server integration
+
+You can enable web search in any MCP client through the [Python MCP server](https://github.com/ollama/ollama-python/blob/main/examples/web-search-mcp.py).
+
+### Cline
+
+Add this configuration to Cline's MCP settings:
+
+```json
+{
+  "mcpServers": {
+    "web_search_and_fetch": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "path/to/web-search-mcp.py"],
+      "env": { "OLLAMA_API_KEY": "your_api_key_here" }
+    }
+  }
+}
+```
+
+### Codex
+
+Add this to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.web_search]
+command = "uv"
+args = ["run", "path/to/web-search-mcp.py"]
+env = { "OLLAMA_API_KEY" = "your_api_key_here" }
+```
+
+### Other integrations
+
+Ollama can be integrated into most tools through:
+- Direct integration of Ollama's API
+- Python / JavaScript libraries
+- OpenAI compatible API
+- MCP server integration
+
+## Tips
+
+- Use web search for queries that require current information
+- Truncate search results to fit within model context limits
+- Combine with thinking mode for better reasoning about search results
+- Use `web_fetch` to get full page content when needed
+- Set appropriate `max_results` to balance detail and context usage
+- Cache search results when possible to reduce API calls

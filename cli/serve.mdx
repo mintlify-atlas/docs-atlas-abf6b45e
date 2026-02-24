@@ -1,0 +1,301 @@
+---
+title: 'ollama serve'
+description: 'Start the Ollama server'
+icon: 'server'
+---
+
+## Synopsis
+
+```bash
+ollama serve
+```
+
+## Description
+
+The `serve` command starts the Ollama server, which handles model loading, inference requests, and API endpoints. The server must be running for other Ollama commands to work.
+
+The server provides:
+- RESTful API for model inference
+- Model management and caching
+- Automatic GPU/CPU resource allocation
+- WebSocket support for streaming responses
+
+## Arguments
+
+None. The `serve` command takes no positional arguments.
+
+## Options
+
+The `serve` command is configured entirely through environment variables.
+
+## Environment Variables
+
+### Server Configuration
+
+<ParamField path="OLLAMA_HOST" type="string" default="127.0.0.1:11434">
+  The host and port the server listens on
+  
+  ```bash
+  OLLAMA_HOST=0.0.0.0:11434 ollama serve  # Listen on all interfaces
+  ```
+</ParamField>
+
+<ParamField path="OLLAMA_ORIGINS" type="string" default="*">
+  Comma-separated list of allowed CORS origins for API requests
+  
+  ```bash
+  OLLAMA_ORIGINS="http://localhost:3000,https://example.com" ollama serve
+  ```
+</ParamField>
+
+<ParamField path="OLLAMA_DEBUG" type="boolean" default="false">
+  Enable debug logging
+  
+  ```bash
+  OLLAMA_DEBUG=1 ollama serve
+  ```
+</ParamField>
+
+### Model Management
+
+<ParamField path="OLLAMA_MODELS" type="string" default="~/.ollama/models">
+  Directory where models are stored
+  
+  ```bash
+  OLLAMA_MODELS=/mnt/models ollama serve
+  ```
+</ParamField>
+
+<ParamField path="OLLAMA_KEEP_ALIVE" type="duration" default="5m">
+  How long to keep models loaded in memory after use
+  
+  - `0` - Unload immediately
+  - `-1` - Keep loaded indefinitely
+  - Duration string: `5m`, `1h`, `30s`
+</ParamField>
+
+<ParamField path="OLLAMA_MAX_LOADED_MODELS" type="integer" default="1">
+  Maximum number of models to keep loaded simultaneously
+</ParamField>
+
+<ParamField path="OLLAMA_MAX_QUEUE" type="integer" default="512">
+  Maximum number of requests to queue when all model slots are full
+</ParamField>
+
+<ParamField path="OLLAMA_NOPRUNE" type="boolean" default="false">
+  Disable automatic pruning of unused model layers
+</ParamField>
+
+### Model Context
+
+<ParamField path="OLLAMA_CONTEXT_LENGTH" type="integer" default="2048">
+  Default context window size for models (in tokens)
+  
+  ```bash
+  OLLAMA_CONTEXT_LENGTH=4096 ollama serve
+  ```
+</ParamField>
+
+<ParamField path="OLLAMA_NUM_PARALLEL" type="integer" default="1">
+  Maximum number of parallel requests per model
+</ParamField>
+
+### Performance Tuning
+
+<ParamField path="OLLAMA_SCHED_SPREAD" type="boolean" default="false">
+  Spread model layers across multiple GPUs when possible
+</ParamField>
+
+<ParamField path="OLLAMA_FLASH_ATTENTION" type="boolean" default="false">
+  Enable Flash Attention optimization (if supported by hardware)
+</ParamField>
+
+<ParamField path="OLLAMA_KV_CACHE_TYPE" type="string">
+  KV cache type for optimization. Options: `f16`, `q8_0`, `q4_0`
+</ParamField>
+
+<ParamField path="OLLAMA_GPU_OVERHEAD" type="integer" default="0">
+  Reserve GPU memory (in MB) for overhead when calculating model capacity
+</ParamField>
+
+<ParamField path="OLLAMA_LOAD_TIMEOUT" type="duration" default="5m">
+  Maximum time to wait for a model to load
+</ParamField>
+
+### Advanced Options
+
+<ParamField path="OLLAMA_LLM_LIBRARY" type="string">
+  Override LLM runtime library (advanced use only)
+</ParamField>
+
+<ParamField path="OLLAMA_NO_CLOUD" type="boolean" default="false">
+  Disable cloud model features and connectivity
+</ParamField>
+
+## Examples
+
+### Start Server (Default)
+
+Start the server with default settings:
+
+```bash
+ollama serve
+```
+
+### Listen on All Interfaces
+
+Allow remote connections:
+
+```bash
+OLLAMA_HOST=0.0.0.0:11434 ollama serve
+```
+
+<Warning>
+Only expose Ollama to your network if you trust all users. There is no built-in authentication.
+</Warning>
+
+### Custom Port
+
+Run on a different port:
+
+```bash
+OLLAMA_HOST=127.0.0.1:8080 ollama serve
+```
+
+### Multiple Models
+
+Keep up to 3 models loaded:
+
+```bash
+OLLAMA_MAX_LOADED_MODELS=3 ollama serve
+```
+
+### Debug Mode
+
+Enable verbose logging:
+
+```bash
+OLLAMA_DEBUG=1 ollama serve
+```
+
+### Production Configuration
+
+Example production setup:
+
+<CodeGroup>
+```bash Environment Variables
+export OLLAMA_HOST=0.0.0.0:11434
+export OLLAMA_MODELS=/var/lib/ollama/models
+export OLLAMA_KEEP_ALIVE=10m
+export OLLAMA_MAX_LOADED_MODELS=2
+export OLLAMA_NUM_PARALLEL=4
+export OLLAMA_FLASH_ATTENTION=1
+
+ollama serve
+```
+
+```bash Systemd Service
+# /etc/systemd/system/ollama.service
+[Unit]
+Description=Ollama Service
+After=network.target
+
+[Service]
+Type=simple
+User=ollama
+Environment="OLLAMA_HOST=0.0.0.0:11434"
+Environment="OLLAMA_MODELS=/var/lib/ollama/models"
+Environment="OLLAMA_MAX_LOADED_MODELS=2"
+ExecStart=/usr/local/bin/ollama serve
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+</CodeGroup>
+
+## Server Lifecycle
+
+### Starting the Server
+
+The server performs these steps on startup:
+
+1. Initialize keypair at `~/.ollama/id_ed25519` (if not exists)
+2. Bind to configured host and port
+3. Load model registry and cache
+4. Begin accepting requests
+
+### Graceful Shutdown
+
+To stop the server gracefully:
+
+```bash
+# Send SIGINT (Ctrl+C) or SIGTERM
+killall ollama
+```
+
+The server will:
+1. Stop accepting new requests
+2. Wait for in-progress requests to complete
+3. Unload all models
+4. Exit cleanly
+
+## Health Check
+
+Check if the server is running:
+
+```bash
+curl http://localhost:11434/api/version
+```
+
+Expected response:
+```json
+{"version":"0.5.0"}
+```
+
+## Logs
+
+Server logs are written to:
+- **Linux**: stdout/stderr (capture with journalctl if using systemd)
+- **macOS**: `~/.ollama/logs/server.log`
+- **Windows**: stdout/stderr
+
+## Troubleshooting
+
+### Port Already in Use
+
+```
+Error: listen tcp 127.0.0.1:11434: bind: address already in use
+```
+
+**Solution**: Change the port or stop the existing Ollama instance
+
+```bash
+OLLAMA_HOST=127.0.0.1:11435 ollama serve
+```
+
+### Permission Denied
+
+```
+Error: failed to create directory: permission denied
+```
+
+**Solution**: Ensure write permissions for the models directory
+
+```bash
+sudo mkdir -p /var/lib/ollama/models
+sudo chown -R $USER /var/lib/ollama
+```
+
+## API Access
+
+Once the server is running, you can access the REST API:
+
+- Base URL: `http://localhost:11434`
+- API Documentation: See [API Reference](/api-reference)
+
+## Related Commands
+
+- [`ollama run`](/cli/run) - Run a model (requires server)
+- [`ollama ps`](/cli/ps) - List running models
+- [`ollama stop`](/cli/stop) - Stop a model to free memory

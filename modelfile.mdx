@@ -1,0 +1,648 @@
+---
+title: Modelfile
+---
+
+A Modelfile is the blueprint for creating and customizing models in Ollama. It defines model parameters, system prompts, templates, and other configurations.
+
+## Overview
+
+Think of a Modelfile like a Dockerfile - it's a set of instructions that describes how to build and configure a model. You can:
+
+- Customize existing models with different parameters
+- Set custom system prompts and behaviors
+- Import models from GGUF files or Safetensors
+- Apply LoRA adapters for fine-tuning
+- Define message history for few-shot learning
+
+## Format
+
+The basic format of a Modelfile:
+
+```modelfile
+# Comment
+INSTRUCTION arguments
+```
+
+Modelfiles are **not case sensitive** - instructions can be written in uppercase or lowercase.
+
+## Instructions
+
+### FROM (Required)
+
+Defines the base model to use. This is the only required instruction.
+
+<CodeGroup>
+```modelfile Existing Model
+FROM llama3.2
+```
+
+```modelfile GGUF File
+FROM ./models/my-model.gguf
+```
+
+```modelfile Safetensors Directory
+FROM ./llama-7b-safetensors
+```
+
+```modelfile Specific Version
+FROM llama3.2:13b
+```
+</CodeGroup>
+
+#### Supported Model Formats
+
+<Tabs>
+  <Tab title="Existing Models">
+    Reference any model already available in Ollama:
+    
+    ```modelfile
+    FROM llama3.2
+    FROM gemma3:7b
+    FROM qwen3:instruct
+    ```
+    
+    Browse available models at [ollama.com/library](https://ollama.com/library).
+  </Tab>
+  
+  <Tab title="GGUF Files">
+    Import a pre-quantized GGUF model file:
+    
+    ```modelfile
+    FROM ./ollama-model.gguf
+    FROM /absolute/path/to/model.gguf
+    ```
+    
+    Path can be absolute or relative to the Modelfile location.
+  </Tab>
+  
+  <Tab title="Safetensors">
+    Import from a Safetensors model directory:
+    
+    ```modelfile
+    FROM ./llama-7b-hf
+    ```
+    
+    Supported architectures:
+    - Llama (including Llama 2, 3, 3.1, 3.2, 4)
+    - Mistral (including Mistral 1, 2, 3, Mixtral)
+    - Gemma (including Gemma 1, 2, 3)
+    - Phi3
+  </Tab>
+</Tabs>
+
+### PARAMETER
+
+Sets parameters for model inference. These control how the model generates responses.
+
+```modelfile
+PARAMETER <parameter> <value>
+```
+
+#### Available Parameters
+
+<ParamField path="num_ctx" type="integer" default="2048">
+  Size of the context window. Controls how many tokens the model can use as context.
+  
+  ```modelfile
+  PARAMETER num_ctx 4096
+  ```
+  
+  <Note>
+    Larger context windows require more memory. See [Context Length](/context-length) for details.
+  </Note>
+</ParamField>
+
+<ParamField path="temperature" type="float" default="0.8">
+  Controls randomness in generation. Higher values (e.g., 1.5) make output more creative, lower values (e.g., 0.3) make it more focused.
+  
+  ```modelfile
+  PARAMETER temperature 0.7
+  ```
+</ParamField>
+
+<ParamField path="top_k" type="integer" default="40">
+  Reduces probability of generating nonsense. Higher values (e.g., 100) give more diverse answers, lower values (e.g., 10) are more conservative.
+  
+  ```modelfile
+  PARAMETER top_k 40
+  ```
+</ParamField>
+
+<ParamField path="top_p" type="float" default="0.9">
+  Works with top_k. Higher values (e.g., 0.95) lead to more diverse text, lower values (e.g., 0.5) generate more focused text.
+  
+  ```modelfile
+  PARAMETER top_p 0.9
+  ```
+</ParamField>
+
+<ParamField path="min_p" type="float" default="0.0">
+  Minimum probability threshold relative to the most likely token. With min_p=0.05 and top token probability of 0.9, tokens with probability less than 0.045 are filtered out.
+  
+  ```modelfile
+  PARAMETER min_p 0.05
+  ```
+</ParamField>
+
+<ParamField path="repeat_penalty" type="float" default="1.1">
+  Penalizes repetition. Higher values (e.g., 1.5) penalize more strongly, lower values (e.g., 0.9) are more lenient.
+  
+  ```modelfile
+  PARAMETER repeat_penalty 1.1
+  ```
+</ParamField>
+
+<ParamField path="repeat_last_n" type="integer" default="64">
+  How far back to look for repetitions. Set to 0 to disable, -1 to use num_ctx.
+  
+  ```modelfile
+  PARAMETER repeat_last_n 64
+  ```
+</ParamField>
+
+<ParamField path="seed" type="integer" default="0">
+  Random seed for generation. Setting a specific number makes the model generate the same text for the same prompt.
+  
+  ```modelfile
+  PARAMETER seed 42
+  ```
+</ParamField>
+
+<ParamField path="num_predict" type="integer" default="-1">
+  Maximum number of tokens to generate. -1 means infinite generation.
+  
+  ```modelfile
+  PARAMETER num_predict 128
+  ```
+</ParamField>
+
+<ParamField path="stop" type="string">
+  Stop sequences - when encountered, the model stops generating. Can specify multiple stop parameters.
+  
+  ```modelfile
+  PARAMETER stop "AI assistant:"
+  PARAMETER stop "<|eot_id|>"
+  ```
+</ParamField>
+
+### TEMPLATE
+
+Defines the prompt template sent to the model. Templates use [Go template syntax](https://pkg.go.dev/text/template).
+
+```modelfile
+TEMPLATE """template content"""
+```
+
+#### Template Variables
+
+<ParamField path=".System" type="string">
+  The system message for custom behavior.
+</ParamField>
+
+<ParamField path=".Prompt" type="string">
+  The user's prompt message.
+</ParamField>
+
+<ParamField path=".Response" type="string">
+  The model's response. Text after this variable is omitted during generation.
+</ParamField>
+
+#### Examples
+
+<CodeGroup>
+```modelfile ChatML Style
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+"""
+```
+
+```modelfile Llama Style
+TEMPLATE """{{ if .System }}<|start_header_id|>system<|end_header_id|>
+
+{{ .System }}<|eot_id|>{{ end }}{{ if .Prompt }}<|start_header_id|>user<|end_header_id|>
+
+{{ .Prompt }}<|eot_id|>{{ end }}<|start_header_id|>assistant<|end_header_id|>
+
+{{ .Response }}<|eot_id|>"""
+```
+
+```modelfile Simple Template
+TEMPLATE """### System:
+{{ .System }}
+
+### User:
+{{ .Prompt }}
+
+### Assistant:
+{{ .Response }}"""
+```
+</CodeGroup>
+
+<Note>
+  The template format is model-specific. Most models work best with their original prompt format.
+</Note>
+
+### SYSTEM
+
+Specifies the system message that defines the model's behavior and personality.
+
+```modelfile
+SYSTEM """<system message>"""
+```
+
+#### Examples
+
+<CodeGroup>
+```modelfile Assistant
+SYSTEM """You are a helpful assistant that provides clear and concise answers."""
+```
+
+```modelfile Code Expert
+SYSTEM """You are an expert programmer. Provide code examples with explanations."""
+```
+
+```modelfile Character
+SYSTEM """You are Mario from Super Mario Bros, acting as an assistant. Respond with enthusiasm and use Italian expressions!"""
+```
+</CodeGroup>
+
+### ADAPTER
+
+Applies a LoRA (Low-Rank Adaptation) adapter to fine-tune the base model.
+
+<Tabs>
+  <Tab title="Safetensors">
+    ```modelfile
+    FROM llama3.2
+    ADAPTER ./lora-adapter
+    ```
+    
+    Supported for:
+    - Llama (including Llama 2, 3, 3.1)
+    - Mistral (including Mistral 1, 2, Mixtral)
+    - Gemma (including Gemma 1, 2)
+  </Tab>
+  
+  <Tab title="GGUF">
+    ```modelfile
+    FROM llama3.2
+    ADAPTER ./ollama-lora.gguf
+    ```
+    
+    Path must be absolute or relative to the Modelfile.
+  </Tab>
+</Tabs>
+
+<Warning>
+  The base model must match the model the adapter was trained on, or behavior will be unpredictable.
+</Warning>
+
+### LICENSE
+
+Specifies the legal license for the model.
+
+```modelfile
+LICENSE """
+MIT License
+
+Copyright (c) 2024
+
+Permission is hereby granted...
+"""
+```
+
+### MESSAGE
+
+Defines example message history for few-shot learning. The model learns from these examples to respond in a similar style.
+
+```modelfile
+MESSAGE <role> <message>
+```
+
+#### Valid Roles
+
+<ParamField path="system" type="role">
+  Alternative way to provide the SYSTEM message.
+</ParamField>
+
+<ParamField path="user" type="role">
+  Example message from the user.
+</ParamField>
+
+<ParamField path="assistant" type="role">
+  Example response from the model.
+</ParamField>
+
+#### Example
+
+```modelfile
+FROM llama3.2
+
+# Teach the model to be concise
+MESSAGE user What is the capital of France?
+MESSAGE assistant Paris.
+
+MESSAGE user What is the capital of Japan?
+MESSAGE assistant Tokyo.
+
+MESSAGE user What is the capital of Canada?
+MESSAGE assistant Ottawa.
+```
+
+### REQUIRES
+
+Specifies the minimum Ollama version required by the model.
+
+```modelfile
+REQUIRES 0.14.0
+```
+
+This ensures users have a compatible version before running the model.
+
+## Complete Examples
+
+### Basic Custom Model
+
+```modelfile
+FROM llama3.2
+
+# Set temperature for more creative responses
+PARAMETER temperature 1.2
+
+# Increase context window
+PARAMETER num_ctx 4096
+
+# Set custom system prompt
+SYSTEM """
+You are a creative writing assistant. Help users with:
+- Story ideas and plot development
+- Character creation and development
+- Writing style and technique
+- Overcoming writer's block
+
+Be encouraging and provide specific, actionable advice.
+"""
+```
+
+### Code Assistant
+
+```modelfile
+FROM llama3.2:13b
+
+# Lower temperature for more focused code
+PARAMETER temperature 0.3
+PARAMETER top_k 20
+PARAMETER top_p 0.8
+
+# Extended context for large code files
+PARAMETER num_ctx 8192
+
+SYSTEM """
+You are an expert software engineer with deep knowledge of:
+- Python, JavaScript, TypeScript, Go, Rust
+- Web development (React, Vue, Node.js)
+- System design and architecture
+- Testing and debugging
+
+Provide:
+1. Working code examples
+2. Explanations of your approach
+3. Best practices and potential pitfalls
+4. Alternative solutions when relevant
+"""
+```
+
+### Character Roleplay
+
+```modelfile
+FROM llama3.2:7b
+
+PARAMETER temperature 1.5
+PARAMETER num_ctx 4096
+
+SYSTEM """
+You are Sherlock Holmes, the famous consulting detective from 221B Baker Street.
+
+Personality traits:
+- Brilliant deductive reasoning
+- Observant of minute details
+- Somewhat arrogant about your abilities
+- Impatient with less intelligent people
+- Passionate about solving mysteries
+
+Speak in a formal Victorian English style. Make deductions based on small observations.
+"""
+
+MESSAGE user Hello, Mr. Holmes.
+MESSAGE assistant Ah, good day. I see you've recently traveled from the countryside, judging by the mud on your boots - clay soil, specific to the Surrey region if I'm not mistaken. You've come seeking my assistance, no doubt?
+```
+
+### Fine-tuned Model with Adapter
+
+```modelfile
+FROM llama3.2:7b
+
+# Apply custom LoRA adapter
+ADAPTER ./medical-lora-adapter
+
+PARAMETER temperature 0.5
+PARAMETER num_ctx 4096
+
+SYSTEM """
+You are a medical information assistant. Provide accurate, evidence-based information about:
+- Common medical conditions
+- Symptoms and their possible causes
+- General health and wellness
+
+IMPORTANT: Always remind users to consult healthcare professionals for personal medical advice.
+"""
+
+LICENSE """
+Medical Model License
+
+This model is for informational purposes only.
+Not a substitute for professional medical advice.
+"""
+
+REQUIRES 0.14.0
+```
+
+## Creating a Model
+
+Once you've created a Modelfile, build the model:
+
+```bash
+ollama create mymodel -f ./Modelfile
+```
+
+Then run it:
+
+```bash
+ollama run mymodel
+```
+
+## Viewing Modelfiles
+
+View the Modelfile of any existing model:
+
+```bash
+ollama show --modelfile llama3.2
+```
+
+Output example:
+
+```modelfile
+# Modelfile generated by "ollama show"
+# To build a new Modelfile based on this one, replace the FROM line with:
+# FROM llama3.2:latest
+
+FROM /Users/user/.ollama/models/blobs/sha256-...
+
+TEMPLATE """{{ if .System }}<|start_header_id|>system<|end_header_id|>
+
+{{ .System }}<|eot_id|>{{ end }}{{ if .Prompt }}<|start_header_id|>user<|end_header_id|>
+
+{{ .Prompt }}<|eot_id|>{{ end }}<|start_header_id|>assistant<|end_header_id|>
+
+{{ .Response }}<|eot_id|>"""
+
+PARAMETER stop "<|start_header_id|>"
+PARAMETER stop "<|end_header_id|>"
+PARAMETER stop "<|eot_id|>"
+```
+
+## Best Practices
+
+<Tip>
+  Start with a base model and iteratively adjust parameters based on the model's behavior.
+</Tip>
+
+<Check>
+  Test your system prompt with various inputs to ensure it produces the desired behavior.
+</Check>
+
+<Warning>
+  Very high temperature values (> 2.0) can produce incoherent output. Start conservative and increase gradually.
+</Warning>
+
+<Note>
+  When using adapters, ensure the base model and adapter are compatible (same architecture and similar training).
+</Note>
+
+## Advanced Topics
+
+### Multi-line Messages
+
+Use triple quotes for multi-line messages:
+
+```modelfile
+MESSAGE user """
+Given this Python function:
+
+def factorial(n):
+    return 1 if n <= 1 else n * factorial(n-1)
+
+Explain how it works.
+"""
+
+MESSAGE assistant """
+This is a recursive implementation of the factorial function:
+
+1. Base case: if n ≤ 1, return 1
+2. Recursive case: multiply n by factorial(n-1)
+3. Works by breaking down the problem until reaching the base case
+"""
+```
+
+### Combining Multiple Parameters
+
+Stack parameters to fine-tune model behavior:
+
+```modelfile
+FROM llama3.2:13b
+
+# Balanced settings for coding
+PARAMETER temperature 0.4       # Slightly creative
+PARAMETER top_k 30              # More focused
+PARAMETER top_p 0.85            # Good quality
+PARAMETER repeat_penalty 1.2    # Avoid repetition
+PARAMETER num_ctx 8192          # Large context
+
+# Multiple stop sequences
+PARAMETER stop "```"
+PARAMETER stop "<|end|>"
+PARAMETER stop "\n\n\n"
+```
+
+### Importing from Hugging Face
+
+Download a model from Hugging Face and import it:
+
+```bash
+# Download safetensors model
+git clone https://huggingface.co/model-name
+
+# Create Modelfile
+cat > Modelfile << EOF
+FROM ./model-name
+PARAMETER temperature 0.8
+EOF
+
+# Build model
+ollama create custom-model -f Modelfile
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Model fails to load" icon="circle-xmark">
+    - Verify the base model exists: `ollama list`
+    - Check file paths are correct (absolute or relative to Modelfile)
+    - Ensure GGUF/Safetensors files are not corrupted
+    - Verify sufficient disk space and memory
+  </Accordion>
+  
+  <Accordion title="Unexpected output" icon="question">
+    - Check your template format matches the base model
+    - Verify system prompt is clear and well-defined
+    - Adjust temperature and sampling parameters
+    - Test with simpler prompts first
+  </Accordion>
+  
+  <Accordion title="Out of memory" icon="memory">
+    - Reduce `num_ctx` parameter
+    - Use a smaller base model
+    - Use a more quantized version (Q4 instead of Q8)
+    - Check available RAM with `ollama ps`
+  </Accordion>
+  
+  <Accordion title="Adapter not working" icon="plug">
+    - Ensure adapter matches base model architecture
+    - Verify adapter was trained on compatible model
+    - Check adapter file format (safetensors or GGUF)
+    - Try without adapter to isolate the issue
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Models" href="/models" icon="brain">
+    Learn about available models and architectures
+  </Card>
+  
+  <Card title="Context & Memory" href="/context-and-memory" icon="memory">
+    Understand conversation context management
+  </Card>
+  
+  <Card title="Template Syntax" href="/template" icon="code">
+    Deep dive into template formatting
+  </Card>
+  
+  <Card title="Import Models" href="/import" icon="file-import">
+    Import models from external sources
+  </Card>
+</CardGroup>

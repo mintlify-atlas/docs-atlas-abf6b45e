@@ -1,0 +1,354 @@
+---
+title: Droid
+description: Factory's AI coding agent across terminal and IDEs
+icon: robot
+---
+
+Droid is Factory AI's coding agent that works across your terminal and popular IDEs. It can read, modify, and execute code with multi-model support through Ollama.
+
+## Installation
+
+Install Droid from Factory AI:
+
+```bash
+curl -fsSL https://app.factory.ai/cli | sh
+```
+
+Learn more at [factory.ai](https://factory.ai/).
+
+## Quick Setup
+
+```bash
+ollama launch droid
+```
+
+Ollama automatically:
+
+<Steps>
+  <Step title="Selects models">
+    Interactive multi-select picker for models
+  </Step>
+  <Step title="Configures custom models">
+    Adds entries to `~/.factory/config.json`
+  </Step>
+  <Step title="Sets token limits">
+    Configures context windows automatically
+  </Step>
+  <Step title="Launches Droid">
+    Starts with all configured models available
+  </Step>
+</Steps>
+
+### Configuration Only
+
+```bash
+ollama launch droid --config
+```
+
+### Use Specific Model
+
+```bash
+ollama launch droid --model qwen3-coder:480b-cloud
+```
+
+<Note>
+  Droid requires a **large context window** (at least 64k tokens). See [Context Length](/context-length) for configuration.
+</Note>
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="IDE Integration" icon="window">
+    Works natively in VS Code, IntelliJ, and more
+  </Card>
+  <Card title="Terminal Mode" icon="terminal">
+    Full-featured CLI interface
+  </Card>
+  <Card title="Multi-Model" icon="cubes">
+    Configure multiple models simultaneously
+  </Card>
+  <Card title="Cloud Support" icon="cloud">
+    Automatic configuration for cloud models
+  </Card>
+</CardGroup>
+
+## Recommended Models
+
+### Cloud Models
+
+<Card title="qwen3-coder:480b-cloud" recommended>
+  Recommended model for Droid (260k context)
+</Card>
+
+Other excellent options:
+
+- `glm-4.7:cloud` — Reasoning and code generation (200k context)
+- `deepseek-v3.1:671b-cloud` — Massive reasoning model (160k context)
+- `minimax-m2.5:cloud` — Fast, efficient coding (200k context)
+
+Explore more at [ollama.com/search?c=cloud](https://ollama.com/search?c=cloud).
+
+### Local Models
+
+- `qwen3-coder` — Efficient code generation (~11GB VRAM)
+- `glm-4.7` — Reasoning and coding (~25GB VRAM)
+- `deepseek-coder` — Specialized code model (~20GB VRAM)
+
+## Manual Setup
+
+<Accordion title="Manual configuration for local models">
+Add a configuration block to `~/.factory/config.json`:
+
+```json
+{
+  "custom_models": [
+    {
+      "model_display_name": "qwen3-coder [Ollama]",
+      "model": "qwen3-coder",
+      "base_url": "http://localhost:11434/v1/",
+      "api_key": "not-needed",
+      "provider": "generic-chat-completion-api",
+      "max_tokens": 32000
+    }
+  ]
+}
+```
+</Accordion>
+
+<Accordion title="Cloud model configuration">
+For cloud models with larger context windows:
+
+```json
+{
+  "custom_models": [
+    {
+      "model_display_name": "qwen3-coder [Ollama Cloud]",
+      "model": "qwen3-coder:480b-cloud",
+      "base_url": "http://localhost:11434/v1/",
+      "api_key": "not-needed",
+      "provider": "generic-chat-completion-api",
+      "max_tokens": 128000
+    }
+  ]
+}
+```
+
+Ollama automatically sets appropriate token limits when you use `ollama launch droid`.
+</Accordion>
+
+## Configuration File
+
+Droid stores configuration in `~/.factory/config.json`:
+
+<Accordion title="Example configuration">
+```json
+{
+  "custom_models": [
+    {
+      "model_display_name": "glm-4.7 [Ollama]",
+      "model": "glm-4.7",
+      "base_url": "http://localhost:11434/v1/",
+      "api_key": "not-needed",
+      "provider": "generic-chat-completion-api",
+      "max_tokens": 65536
+    },
+    {
+      "model_display_name": "qwen3-coder:480b [Ollama Cloud]",
+      "model": "qwen3-coder:480b-cloud",
+      "base_url": "http://localhost:11434/v1/",
+      "api_key": "not-needed",
+      "provider": "generic-chat-completion-api",
+      "max_tokens": 262144
+    }
+  ]
+}
+```
+</Accordion>
+
+Ollama automatically manages this file when you use `ollama launch droid`.
+
+## Multiple Models
+
+Droid supports multiple models simultaneously. Use `ollama launch droid` to configure several:
+
+```bash
+ollama launch droid
+# → Select multiple models in the picker
+# → All models become available in Droid
+```
+
+Switch between models in the Droid UI or CLI.
+
+## Connecting to ollama.com
+
+To use cloud models hosted on ollama.com:
+
+<Steps>
+  <Step title="Create an API key">
+    Go to [ollama.com/settings/keys](https://ollama.com/settings/keys)
+  </Step>
+  <Step title="Export the key">
+    ```bash
+    export OLLAMA_API_KEY=your-key-here
+    ```
+  </Step>
+  <Step title="Update config">
+    Edit `~/.factory/config.json`:
+    ```json
+    {
+      "custom_models": [
+        {
+          "model_display_name": "qwen3-coder [Ollama Cloud]",
+          "model": "qwen3-coder:480b",
+          "base_url": "https://ollama.com/v1/",
+          "api_key": "OLLAMA_API_KEY",
+          "provider": "generic-chat-completion-api",
+          "max_tokens": 128000
+        }
+      ]
+    }
+    ```
+  </Step>
+  <Step title="Restart Droid">
+    ```bash
+    droid
+    ```
+  </Step>
+</Steps>
+
+## Usage Examples
+
+### Terminal Mode
+
+```bash
+cd ~/projects/my-app
+droid
+```
+
+### IDE Integration
+
+1. Install the Droid plugin for your IDE
+2. Configure Ollama models in Droid settings
+3. Select a model from the model picker
+
+### Ask Droid to Make Changes
+
+```bash
+droid "Refactor the authentication module"
+```
+
+### Switch Models
+
+In the Droid UI, use the model selector to switch between configured models.
+
+## Troubleshooting
+
+### Model Not Available
+
+Ensure the model is pulled:
+
+```bash
+ollama pull qwen3-coder:480b-cloud
+ollama list
+```
+
+### Configuration Not Loading
+
+Restart Droid to pick up config changes:
+
+```bash
+droid --reload
+```
+
+### Context Window Too Small
+
+For local models, increase context:
+
+```bash
+ollama run qwen3-coder /set parameter num_ctx 65536
+```
+
+See [Context Length](/context-length) for details.
+
+### Connection Issues
+
+Verify Ollama is running:
+
+```bash
+ollama list
+```
+
+Check that `base_url` in `~/.factory/config.json` matches your Ollama host.
+
+## Advanced Configuration
+
+### Custom Display Names
+
+```json
+{
+  "custom_models": [
+    {
+      "model_display_name": "Qwen3 Coder (Local Fast)",
+      "model": "qwen3-coder",
+      "base_url": "http://localhost:11434/v1/",
+      "provider": "generic-chat-completion-api"
+    }
+  ]
+}
+```
+
+### Temperature and Parameters
+
+Droid respects model-level parameters:
+
+```json
+{
+  "custom_models": [
+    {
+      "model": "qwen3-coder",
+      "temperature": 0.7,
+      "top_p": 0.9,
+      "max_tokens": 32000
+    }
+  ]
+}
+```
+
+### Environment Variables
+
+Droid respects:
+
+- `OLLAMA_HOST` — Override Ollama server URL
+- `OLLAMA_API_KEY` — API key for ollama.com
+
+## IDE Plugins
+
+Droid provides plugins for:
+
+- **VS Code** — [Install from marketplace](https://marketplace.visualstudio.com/items?itemName=factory.droid)
+- **IntelliJ IDEA** — [Install from JetBrains](https://plugins.jetbrains.com/plugin/factory-droid)
+- **PyCharm** — Same as IntelliJ
+- **WebStorm** — Same as IntelliJ
+
+After installing, configure Ollama models in the plugin settings.
+
+## Backup Configuration
+
+When using `ollama launch droid`, Ollama creates backups in `~/.ollama/backups/` before modifying your configuration.
+
+## Learn More
+
+<CardGroup cols={2}>
+  <Card title="Factory AI" icon="globe" href="https://factory.ai">
+    Official Factory AI website
+  </Card>
+  <Card title="Droid Docs" icon="book" href="https://docs.factory.ai/cli/getting-started/quickstart">
+    Complete Droid documentation
+  </Card>
+  <Card title="OpenAI API" icon="code" href="/api/openai-compatibility">
+    Ollama's OpenAI-compatible API
+  </Card>
+  <Card title="Context Length" icon="brain" href="/context-length">
+    Configure model context windows
+  </Card>
+</CardGroup>

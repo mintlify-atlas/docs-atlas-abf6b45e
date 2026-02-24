@@ -1,122 +1,167 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Ollama",
+  "theme": "maple",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#000000",
+    "light": "#b5b5b5",
+    "dark": "#000000"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/ollama/ollama"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/ollama/ollama"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
+              "introduction",
               "quickstart",
-              "development"
+              "installation"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "models",
+              "modelfile",
+              "context-and-memory"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Features",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "features/chat",
+              "features/streaming",
+              "features/embeddings",
+              "features/vision",
+              "features/tool-calling",
+              "features/thinking",
+              "features/structured-outputs",
+              "features/web-search"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Integrations",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "integrations/overview",
+              "integrations/openclaw",
+              "integrations/claude-code",
+              "integrations/codex",
+              "integrations/opencode",
+              "integrations/droid",
+              "integrations/ide-extensions",
+              "integrations/libraries"
+            ]
+          },
+          {
+            "group": "Platform Guides",
+            "pages": [
+              "platforms/linux",
+              "platforms/macos",
+              "platforms/windows",
+              "platforms/docker",
+              "platforms/cloud"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/import",
+              "advanced/gpu",
+              "advanced/environment-variables",
+              "advanced/model-quantization"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "faq",
+              "troubleshooting",
+              "contributing"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "CLI Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Commands",
             "pages": [
-              "api-reference/introduction"
+              "cli/overview",
+              "cli/run",
+              "cli/serve",
+              "cli/pull",
+              "cli/push",
+              "cli/create",
+              "cli/show",
+              "cli/list",
+              "cli/ps",
+              "cli/stop",
+              "cli/rm",
+              "cli/launch"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "api/introduction",
+              "api/authentication",
+              "api/libraries"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Concepts",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api/streaming",
+              "api/usage",
+              "api/errors"
+            ]
+          },
+          {
+            "group": "Compatibility",
+            "pages": [
+              "api/openai-compatibility",
+              "api/anthropic-compatibility"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/endpoints/chat",
+              "api/endpoints/generate",
+              "api/endpoints/embed",
+              "api/endpoints/embeddings",
+              "api/endpoints/create",
+              "api/endpoints/pull",
+              "api/endpoints/push",
+              "api/endpoints/list",
+              "api/endpoints/show",
+              "api/endpoints/copy",
+              "api/endpoints/delete",
+              "api/endpoints/ps",
+              "api/endpoints/version"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

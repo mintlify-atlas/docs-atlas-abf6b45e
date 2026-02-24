@@ -1,0 +1,171 @@
+---
+title: Introduction
+description: Get started with the Ollama API to run and interact with LLMs programmatically
+---
+
+The Ollama API provides a comprehensive REST interface for running and managing large language models locally. Whether you're building chatbots, generating text, creating embeddings, or managing models, the Ollama API gives you full control over your AI infrastructure.
+
+## Base URL
+
+After installation, Ollama's API is served by default at:
+
+```
+http://localhost:11434/api
+```
+
+For running cloud models on **ollama.com**, the same API is available with the following base URL:
+
+```
+https://ollama.com/api
+```
+
+<Note>
+You can customize the host using the `OLLAMA_HOST` environment variable. The default is `http://localhost:11434`.
+</Note>
+
+## Quick Start Example
+
+Once Ollama is running, you can immediately start making API requests. Here's a simple example using `curl`:
+
+<CodeGroup>
+```bash cURL
+curl http://localhost:11434/api/generate -d '{
+  "model": "gemma3",
+  "prompt": "Why is the sky blue?",
+  "stream": false
+}'
+```
+
+```python Python
+from ollama import generate
+
+response = generate(
+  model='gemma3',
+  prompt='Why is the sky blue?'
+)
+print(response['response'])
+```
+
+```javascript JavaScript
+import ollama from 'ollama';
+
+const response = await ollama.generate({
+  model: 'gemma3',
+  prompt: 'Why is the sky blue?'
+});
+console.log(response.response);
+```
+</CodeGroup>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Chat Completions" icon="comments">
+    Multi-turn conversations with context preservation and streaming support
+  </Card>
+  <Card title="Text Generation" icon="wand-magic-sparkles">
+    Generate text from prompts with full control over model parameters
+  </Card>
+  <Card title="Embeddings" icon="vector-square">
+    Create vector embeddings for semantic search and RAG applications
+  </Card>
+  <Card title="Model Management" icon="box">
+    Pull, create, copy, and delete models programmatically
+  </Card>
+</CardGroup>
+
+## Core Endpoints
+
+The Ollama API provides the following main endpoints:
+
+<Steps>
+  <Step title="Generate">
+    Generate text completions from a prompt
+    
+    ```
+    POST /api/generate
+    ```
+  </Step>
+  
+  <Step title="Chat">
+    Create multi-turn conversations with message history
+    
+    ```
+    POST /api/chat
+    ```
+  </Step>
+  
+  <Step title="Embeddings">
+    Generate embeddings for text input
+    
+    ```
+    POST /api/embed
+    POST /api/embeddings
+    ```
+  </Step>
+  
+  <Step title="Models">
+    List, pull, create, copy, and delete models
+    
+    ```
+    GET /api/tags
+    POST /api/pull
+    POST /api/create
+    POST /api/copy
+    DELETE /api/delete
+    ```
+  </Step>
+</Steps>
+
+## Response Formats
+
+The API supports both streaming and non-streaming responses:
+
+- **Streaming (default)**: Responses are sent as newline-delimited JSON (NDJSON) for real-time output
+- **Non-streaming**: Set `"stream": false` in your request for a single complete response
+
+<Note>
+Streaming responses use the `application/x-ndjson` content type, while non-streaming responses use `application/json`.
+</Note>
+
+## Official Client Libraries
+
+Ollama provides official client libraries that make integration even easier:
+
+<CardGroup cols={2}>
+  <Card title="Python" icon="python" href="/api/libraries#python">
+    `pip install ollama`
+  </Card>
+  <Card title="JavaScript" icon="js" href="/api/libraries#javascript">
+    `npm install ollama`
+  </Card>
+</CardGroup>
+
+See the [Libraries](/api/libraries) page for installation instructions and examples.
+
+## API Versioning
+
+Ollama's API isn't strictly versioned but is designed to be stable and backwards compatible. Any deprecations are rare and will be announced in the [release notes](https://github.com/ollama/ollama/releases).
+
+You can check your Ollama version using:
+
+```bash
+curl http://localhost:11434/api/version
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/api/authentication">
+    Learn how to authenticate with ollama.com for cloud models
+  </Card>
+  <Card title="Client Libraries" icon="book-open" href="/api/libraries">
+    Use official Python and JavaScript libraries
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/generate">
+    Explore all available endpoints and parameters
+  </Card>
+  <Card title="Streaming" icon="tower-broadcast" href="/api/streaming">
+    Implement real-time streaming responses
+  </Card>
+</CardGroup>

@@ -1,0 +1,225 @@
+---
+title: 'GET /api/tags'
+description: 'List all locally available models'
+---
+
+Retrieve a list of all models available on the local system. This endpoint returns model metadata including size, modification time, and model details.
+
+## Request
+
+### Endpoint
+
+```
+GET /api/tags
+```
+
+### Headers
+
+```
+HEAD /api/tags
+```
+
+Both GET and HEAD methods are supported.
+
+### Request Parameters
+
+No parameters required.
+
+## Response
+
+### Response Fields
+
+<ResponseField name="models" type="array">
+  Array of model objects
+  
+  <Expandable title="Model Object">
+    <ResponseField name="name" type="string">
+      Display name of the model (shortest unique identifier)
+    </ResponseField>
+    
+    <ResponseField name="model" type="string">
+      Full model identifier (same as `name`)
+    </ResponseField>
+    
+    <ResponseField name="modified_at" type="string">
+      Timestamp of last modification (ISO 8601 format)
+    </ResponseField>
+    
+    <ResponseField name="size" type="integer">
+      Total size of the model in bytes
+    </ResponseField>
+    
+    <ResponseField name="digest" type="string">
+      SHA256 digest of the model manifest
+    </ResponseField>
+    
+    <ResponseField name="details" type="object">
+      Model metadata and architecture details
+      
+      <Expandable title="Details Object">
+        <ResponseField name="format" type="string">
+          Model format (e.g., "gguf", "safetensors")
+        </ResponseField>
+        
+        <ResponseField name="family" type="string">
+          Model architecture family (e.g., "llama", "mistral")
+        </ResponseField>
+        
+        <ResponseField name="families" type="array">
+          Array of architecture families the model belongs to
+        </ResponseField>
+        
+        <ResponseField name="parameter_size" type="string">
+          Human-readable parameter count (e.g., "7B", "13B")
+        </ResponseField>
+        
+        <ResponseField name="quantization_level" type="string">
+          Quantization format (e.g., "Q4_0", "Q5_K_M", "F16")
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="remote_model" type="string">
+      Name of the upstream model if this is a remote model
+    </ResponseField>
+    
+    <ResponseField name="remote_host" type="string">
+      URL of the upstream Ollama host if this is a remote model
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Examples
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:11434/api/tags
+```
+
+```python Python
+import requests
+
+response = requests.get('http://localhost:11434/api/tags')
+models = response.json()['models']
+
+for model in models:
+    print(f"{model['name']}: {model['size'] / (1024**3):.2f} GB")
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:11434/api/tags');
+const data = await response.json();
+
+data.models.forEach(model => {
+  const sizeGB = (model.size / (1024 ** 3)).toFixed(2);
+  console.log(`${model.name}: ${sizeGB} GB`);
+});
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "models": [
+    {
+      "name": "llama3.2:latest",
+      "model": "llama3.2:latest",
+      "modified_at": "2024-02-24T12:34:56.789Z",
+      "size": 3826793677,
+      "digest": "sha256:8daa9615cce30c259a9555b1cc250d461d1bc69980a274b44d7eda0be78076d8",
+      "details": {
+        "format": "gguf",
+        "family": "llama",
+        "families": ["llama"],
+        "parameter_size": "3B",
+        "quantization_level": "Q4_K_M"
+      }
+    },
+    {
+      "name": "mistral:7b-instruct",
+      "model": "mistral:7b-instruct",
+      "modified_at": "2024-02-20T08:15:30.123Z",
+      "size": 4109865159,
+      "digest": "sha256:2ae6f6dd7a3dd734790bbbf58b8909a606e0e7e97e94b7604e0aa7ae4490e6d8",
+      "details": {
+        "format": "gguf",
+        "family": "mistral",
+        "families": ["mistral"],
+        "parameter_size": "7B",
+        "quantization_level": "Q4_0"
+      }
+    }
+  ]
+}
+```
+
+### Filter and Sort (Python Example)
+
+```python
+import requests
+from datetime import datetime
+
+response = requests.get('http://localhost:11434/api/tags')
+models = response.json()['models']
+
+# Sort by size (largest first)
+models_by_size = sorted(models, key=lambda m: m['size'], reverse=True)
+
+# Filter by family
+llama_models = [m for m in models if m['details']['family'] == 'llama']
+
+# Recently modified (within last 7 days)
+from datetime import datetime, timedelta
+recent_date = datetime.now() - timedelta(days=7)
+
+recent_models = [
+    m for m in models 
+    if datetime.fromisoformat(m['modified_at'].replace('Z', '+00:00')) > recent_date
+]
+
+print(f"Total models: {len(models)}")
+print(f"Llama models: {len(llama_models)}")
+print(f"Recently modified: {len(recent_models)}")
+```
+
+### Display Model Information (JavaScript Example)
+
+```javascript
+const response = await fetch('http://localhost:11434/api/tags');
+const data = await response.json();
+
+data.models.forEach(model => {
+  const sizeGB = (model.size / (1024 ** 3)).toFixed(2);
+  const date = new Date(model.modified_at);
+  
+  console.log(`
+    Model: ${model.name}
+    Family: ${model.details.family}
+    Size: ${sizeGB} GB
+    Parameters: ${model.details.parameter_size}
+    Quantization: ${model.details.quantization_level}
+    Modified: ${date.toLocaleDateString()}
+  `);
+});
+```
+
+## Error Responses
+
+<ResponseField name="error" type="string">
+  Description of the error
+</ResponseField>
+
+### Common Errors
+
+- **500 Internal Server Error**: Error reading model directory
+
+<Note>
+Models are sorted by modification time, with the most recently modified models appearing first.
+</Note>
+
+<Note>
+The `name` and `model` fields contain the same value - the shortest unique identifier for the model (e.g., `llama3.2` instead of `registry.ollama.ai/library/llama3.2:latest`).
+</Note>

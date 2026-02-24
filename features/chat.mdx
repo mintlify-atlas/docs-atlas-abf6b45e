@@ -1,0 +1,257 @@
+---
+title: Chat
+description: Multi-turn conversations with models that maintain context and history.
+---
+
+Chat enables interactive, multi-turn conversations with language models. The chat endpoint maintains conversation history through the `messages` array, allowing models to understand context across multiple exchanges.
+
+## Quick start
+
+<Tabs>
+  <Tab title="CLI">
+    Start an interactive chat session:
+
+    ```shell
+    ollama run llama3.2
+    ```
+
+    The CLI automatically maintains conversation history until you exit.
+  </Tab>
+  <Tab title="cURL">
+    ```shell
+    curl http://localhost:11434/api/chat -d '{
+      "model": "llama3.2",
+      "messages": [
+        {"role": "user", "content": "Why is the sky blue?"}
+      ],
+      "stream": false
+    }'
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from ollama import chat
+
+    response = chat(
+      model='llama3.2',
+      messages=[
+        {'role': 'user', 'content': 'Why is the sky blue?'}
+      ]
+    )
+    print(response.message.content)
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    import ollama from 'ollama'
+
+    const response = await ollama.chat({
+      model: 'llama3.2',
+      messages: [{ role: 'user', content: 'Why is the sky blue?' }],
+    })
+    console.log(response.message.content)
+    ```
+  </Tab>
+</Tabs>
+
+## Multi-turn conversations
+
+Maintain conversation history by appending each message to the `messages` array:
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from ollama import chat
+
+    messages = [
+      {'role': 'user', 'content': 'What is the capital of France?'}
+    ]
+
+    response = chat(model='llama3.2', messages=messages)
+    messages.append(response.message)
+
+    # Follow-up question
+    messages.append({
+      'role': 'user',
+      'content': 'What is its population?'
+    })
+
+    response = chat(model='llama3.2', messages=messages)
+    print(response.message.content)
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    import ollama from 'ollama'
+
+    const messages = [
+      { role: 'user', content: 'What is the capital of France?' }
+    ]
+
+    let response = await ollama.chat({ model: 'llama3.2', messages })
+    messages.push(response.message)
+
+    // Follow-up question
+    messages.push({
+      role: 'user',
+      content: 'What is its population?'
+    })
+
+    response = await ollama.chat({ model: 'llama3.2', messages })
+    console.log(response.message.content)
+    ```
+  </Tab>
+</Tabs>
+
+## Message roles
+
+The chat API supports three message roles:
+
+- **`user`**: Messages from the user/human
+- **`assistant`**: Messages from the AI model
+- **`system`**: Instructions that guide the model's behavior
+- **`tool`**: Results from tool/function calls (see [Tool Calling](/features/tool-calling))
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from ollama import chat
+
+    messages = [
+      {
+        'role': 'system',
+        'content': 'You are a helpful assistant that speaks like a pirate.'
+      },
+      {
+        'role': 'user',
+        'content': 'Tell me about Python programming.'
+      }
+    ]
+
+    response = chat(model='llama3.2', messages=messages)
+    print(response.message.content)
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    import ollama from 'ollama'
+
+    const messages = [
+      {
+        role: 'system',
+        content: 'You are a helpful assistant that speaks like a pirate.'
+      },
+      {
+        role: 'user',
+        content: 'Tell me about Python programming.'
+      }
+    ]
+
+    const response = await ollama.chat({ model: 'llama3.2', messages })
+    console.log(response.message.content)
+    ```
+  </Tab>
+</Tabs>
+
+## API parameters
+
+<ParamField path="model" type="string" required>
+  The model name (e.g., `llama3.2`, `qwen3`)
+</ParamField>
+
+<ParamField path="messages" type="array" required>
+  Array of message objects with `role` and `content` fields
+</ParamField>
+
+<ParamField path="stream" type="boolean" default="true">
+  Enable streaming responses (see [Streaming](/features/streaming))
+</ParamField>
+
+<ParamField path="format" type="string | object">
+  Response format: `"json"` for JSON mode or a JSON schema object (see [Structured Outputs](/features/structured-outputs))
+</ParamField>
+
+<ParamField path="options" type="object">
+  Model options like `temperature`, `top_p`, `num_ctx`, etc.
+</ParamField>
+
+<ParamField path="keep_alive" type="duration" default="5m">
+  How long to keep the model loaded in memory
+</ParamField>
+
+<ParamField path="tools" type="array">
+  List of tools available for the model to call (see [Tool Calling](/features/tool-calling))
+</ParamField>
+
+<ParamField path="think" type="boolean | string">
+  Enable thinking/reasoning mode (see [Thinking](/features/thinking))
+</ParamField>
+
+## Response structure
+
+<Tabs>
+  <Tab title="Streaming">
+    When streaming is enabled (default), the response is a series of JSON objects:
+
+    ```json
+    {
+      "model": "llama3.2",
+      "created_at": "2024-12-09T21:07:55.186497Z",
+      "message": {
+        "role": "assistant",
+        "content": "The "
+      },
+      "done": false
+    }
+    ```
+
+    The final message includes metrics:
+
+    ```json
+    {
+      "model": "llama3.2",
+      "created_at": "2024-12-09T21:07:55.186497Z",
+      "message": {
+        "role": "assistant",
+        "content": ""
+      },
+      "done": true,
+      "total_duration": 4648158584,
+      "load_duration": 4071084,
+      "prompt_eval_count": 26,
+      "prompt_eval_duration": 107345000,
+      "eval_count": 298,
+      "eval_duration": 4289432000
+    }
+    ```
+  </Tab>
+  <Tab title="Non-streaming">
+    With `stream: false`, the response is a single JSON object:
+
+    ```json
+    {
+      "model": "llama3.2",
+      "created_at": "2024-12-09T21:07:55.186497Z",
+      "message": {
+        "role": "assistant",
+        "content": "The sky appears blue due to Rayleigh scattering..."
+      },
+      "done": true,
+      "total_duration": 4648158584,
+      "load_duration": 4071084,
+      "prompt_eval_count": 26,
+      "prompt_eval_duration": 107345000,
+      "eval_count": 298,
+      "eval_duration": 4289432000
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Tips
+
+- Store the entire `messages` array to maintain full conversation context
+- Include a system message at the start to set the assistant's behavior
+- Use `keep_alive` to keep models loaded for faster subsequent requests
+- Set `temperature: 0` in `options` for more deterministic responses
+- See [Streaming](/features/streaming) for real-time response rendering

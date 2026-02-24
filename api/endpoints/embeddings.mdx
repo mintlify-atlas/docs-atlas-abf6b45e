@@ -1,0 +1,124 @@
+---
+title: 'POST /api/embeddings'
+description: 'Generate embeddings (legacy endpoint)'
+---
+
+<Warning>
+This is a legacy endpoint. Use `/api/embed` for new integrations.
+</Warning>
+
+Generate embeddings from a model for a single text prompt. This endpoint returns embeddings as float64 values.
+
+## Request
+
+### Endpoint
+
+```
+POST /api/embeddings
+```
+
+### Request Body
+
+<ParamField path="model" type="string" required>
+  Model name to use for embedding generation (e.g., `nomic-embed-text`)
+</ParamField>
+
+<ParamField path="prompt" type="string" required>
+  Text prompt to generate embeddings for
+</ParamField>
+
+<ParamField path="keep_alive" type="string | number" default="5m">
+  Duration to keep model loaded in memory (e.g., `"5m"`, `"1h"`, `-1` for indefinite)
+</ParamField>
+
+<ParamField path="options" type="object">
+  Model-specific options for embedding generation
+</ParamField>
+
+## Response
+
+### Response Fields
+
+<ResponseField name="embedding" type="array">
+  Array of float64 numbers representing the embedding vector
+</ResponseField>
+
+## Examples
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:11434/api/embeddings -d '{
+  "model": "nomic-embed-text",
+  "prompt": "Hello, world!"
+}'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:11434/api/embeddings',
+    json={
+        'model': 'nomic-embed-text',
+        'prompt': 'Hello, world!'
+    }
+)
+
+result = response.json()
+embedding = result['embedding']
+print(f"Embedding dimension: {len(embedding)}")
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:11434/api/embeddings', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'nomic-embed-text',
+    prompt: 'Hello, world!'
+  })
+});
+
+const data = await response.json();
+const embedding = data.embedding;
+console.log(`Embedding dimension: ${embedding.length}`);
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "embedding": [
+    0.5670403838157654,
+    0.009260174818336964,
+    -0.4829583466053009,
+    0.11173559725284576,
+    -0.8732880353927612,
+    ...
+  ]
+}
+```
+
+## Error Responses
+
+<ResponseField name="error" type="string">
+  Description of the error
+</ResponseField>
+
+### Common Errors
+
+- **400 Bad Request**: Model name or prompt is required
+- **404 Not Found**: Model not found
+- **500 Internal Server Error**: Embedding generation error
+
+<Note>
+**Migration Guide:** To migrate from `/api/embeddings` to `/api/embed`:
+
+- Change `prompt` to `input`
+- Embeddings are returned in a nested array: `embeddings[0]` instead of `embedding`
+- Float32 precision instead of Float64
+- Support for batch processing with array input
+</Note>

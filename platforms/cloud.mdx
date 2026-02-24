@@ -1,0 +1,460 @@
+---
+title: Cloud
+description: Run large language models without a GPU using Ollama's cloud service
+---
+
+Ollama Cloud allows you to run large language models without requiring powerful local hardware. Cloud models are automatically offloaded to Ollama's cloud infrastructure while maintaining the same interface as local models.
+
+## What are Cloud Models?
+
+Cloud models are a new type of model in Ollama that:
+
+- **Run remotely** on Ollama's cloud infrastructure
+- **Require no GPU** on your local machine
+- **Use the same API** as local models
+- **Work with existing tools** and workflows
+- **Enable access to larger models** that won't fit on personal computers
+
+This makes it possible to run models like 120B parameter LLMs without investing in expensive hardware.
+
+## Getting Started
+
+### Sign In to Ollama
+
+Cloud models require an account on [ollama.com](https://ollama.com). Sign in or create an account:
+
+```bash
+ollama signin
+```
+
+Follow the prompts to authenticate.
+
+### Browse Cloud Models
+
+Explore available cloud models at [ollama.com/search?c=cloud](https://ollama.com/search?c=cloud).
+
+## Running Cloud Models
+
+<Tabs>
+  <Tab title="CLI">
+    Run a cloud model directly from the terminal:
+
+    ```bash
+    ollama run gpt-oss:120b-cloud
+    ```
+
+    Cloud models work exactly like local models:
+
+    ```bash
+    # Chat interactively
+    ollama run gpt-oss:120b-cloud
+
+    # One-off prompt
+    ollama run gpt-oss:120b-cloud "Explain quantum computing"
+
+    # Check running models
+    ollama ps
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    First, pull the cloud model:
+
+    ```bash
+    ollama pull gpt-oss:120b-cloud
+    ```
+
+    Install the Ollama Python library:
+
+    ```bash
+    pip install ollama
+    ```
+
+    Use the cloud model in your code:
+
+    ```python
+    from ollama import Client
+
+    client = Client()
+
+    messages = [
+      {
+        'role': 'user',
+        'content': 'Why is the sky blue?',
+      },
+    ]
+
+    for part in client.chat('gpt-oss:120b-cloud', messages=messages, stream=True):
+      print(part['message']['content'], end='', flush=True)
+    ```
+
+    Print the complete response:
+
+    ```python
+    print()  # New line after streaming
+    ```
+  </Tab>
+
+  <Tab title="JavaScript">
+    First, pull the cloud model:
+
+    ```bash
+    ollama pull gpt-oss:120b-cloud
+    ```
+
+    Install the Ollama JavaScript library:
+
+    ```bash
+    npm install ollama
+    ```
+
+    Use the cloud model in your application:
+
+    ```typescript
+    import { Ollama } from "ollama";
+
+    const ollama = new Ollama();
+
+    const response = await ollama.chat({
+      model: "gpt-oss:120b-cloud",
+      messages: [{ role: "user", content: "Explain quantum computing" }],
+      stream: true,
+    });
+
+    for await (const part of response) {
+      process.stdout.write(part.message.content);
+    }
+    ```
+  </Tab>
+
+  <Tab title="cURL">
+    First, pull the cloud model:
+
+    ```bash
+    ollama pull gpt-oss:120b-cloud
+    ```
+
+    Make API requests using cURL:
+
+    ```bash
+    curl http://localhost:11434/api/chat -d '{
+      "model": "gpt-oss:120b-cloud",
+      "messages": [{
+        "role": "user",
+        "content": "Why is the sky blue?"
+      }],
+      "stream": false
+    }'
+    ```
+
+    With streaming:
+
+    ```bash
+    curl http://localhost:11434/api/chat -d '{
+      "model": "gpt-oss:120b-cloud",
+      "messages": [{
+        "role": "user",
+        "content": "Tell me a story"
+      }],
+      "stream": true
+    }'
+    ```
+  </Tab>
+</Tabs>
+
+## Direct Cloud API Access
+
+Cloud models can also be accessed directly via ollama.com's API without a local Ollama installation. In this mode, ollama.com acts as a remote Ollama host.
+
+### Authentication
+
+<Steps>
+  <Step title="Create API Key">
+    Generate an API key at [ollama.com/settings/keys](https://ollama.com/settings/keys).
+  </Step>
+
+  <Step title="Set Environment Variable">
+    Export your API key:
+
+    ```bash
+    export OLLAMA_API_KEY=your_api_key
+    ```
+
+    Or in Windows PowerShell:
+
+    ```powershell
+    $env:OLLAMA_API_KEY="your_api_key"
+    ```
+  </Step>
+</Steps>
+
+### List Available Models
+
+Retrieve models available via the cloud API:
+
+```bash
+curl https://ollama.com/api/tags
+```
+
+### Generate Responses
+
+<Tabs>
+  <Tab title="Python">
+    Install the library:
+
+    ```bash
+    pip install ollama
+    ```
+
+    Connect to the cloud API:
+
+    ```python
+    import os
+    from ollama import Client
+
+    client = Client(
+        host="https://ollama.com",
+        headers={'Authorization': 'Bearer ' + os.environ.get('OLLAMA_API_KEY')}
+    )
+
+    messages = [
+      {
+        'role': 'user',
+        'content': 'Why is the sky blue?',
+      },
+    ]
+
+    for part in client.chat('gpt-oss:120b', messages=messages, stream=True):
+      print(part['message']['content'], end='', flush=True)
+    ```
+
+    <Note>
+    When using the direct cloud API, use model names without the `-cloud` suffix (e.g., `gpt-oss:120b` instead of `gpt-oss:120b-cloud`).
+    </Note>
+  </Tab>
+
+  <Tab title="JavaScript">
+    Install the library:
+
+    ```bash
+    npm install ollama
+    ```
+
+    Connect to the cloud API:
+
+    ```typescript
+    import { Ollama } from "ollama";
+
+    const ollama = new Ollama({
+      host: "https://ollama.com",
+      headers: {
+        Authorization: "Bearer " + process.env.OLLAMA_API_KEY,
+      },
+    });
+
+    const response = await ollama.chat({
+      model: "gpt-oss:120b",
+      messages: [{ role: "user", content: "Explain quantum computing" }],
+      stream: true,
+    });
+
+    for await (const part of response) {
+      process.stdout.write(part.message.content);
+    }
+    ```
+  </Tab>
+
+  <Tab title="cURL">
+    Make authenticated requests:
+
+    ```bash
+    curl https://ollama.com/api/chat \
+      -H "Authorization: Bearer $OLLAMA_API_KEY" \
+      -d '{
+        "model": "gpt-oss:120b",
+        "messages": [{
+          "role": "user",
+          "content": "Why is the sky blue?"
+        }],
+        "stream": false
+      }'
+    ```
+
+    With streaming enabled:
+
+    ```bash
+    curl https://ollama.com/api/chat \
+      -H "Authorization: Bearer $OLLAMA_API_KEY" \
+      -d '{
+        "model": "gpt-oss:120b",
+        "messages": [{
+          "role": "user",
+          "content": "Write a haiku about programming"
+        }],
+        "stream": true
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+## Privacy and Data Handling
+
+Ollama is designed with privacy in mind:
+
+### Local Models
+- Run entirely on your machine
+- No data sent to Ollama servers
+- Complete privacy and control
+
+### Cloud Models
+- Prompts and responses are processed to provide the service
+- **No storage or logging** of prompt/response content
+- **No training on your data**
+- Basic account info and usage metadata collected (not including content)
+- Data is never sold
+- You can delete your account anytime
+
+For more details, see the [Privacy Policy](https://ollama.com/privacy).
+
+## Disabling Cloud Features
+
+If you prefer to run Ollama in local-only mode:
+
+### Using Configuration File
+
+Edit `~/.ollama/server.json`:
+
+```json
+{
+  "disable_ollama_cloud": true
+}
+```
+
+### Using Environment Variable
+
+```bash
+export OLLAMA_NO_CLOUD=1
+```
+
+Or in Windows PowerShell:
+
+```powershell
+$env:OLLAMA_NO_CLOUD=1
+```
+
+Restart Ollama after changing the configuration. Check logs to verify:
+
+```
+Ollama cloud disabled: true
+```
+
+When cloud features are disabled:
+- Cloud models will not be accessible
+- All inference happens locally
+- No connections to ollama.com services
+
+## Benefits of Cloud Models
+
+<CardGroup cols={2}>
+  <Card title="No GPU Required" icon="computer">
+    Run large models without expensive hardware
+  </Card>
+  
+  <Card title="Access Larger Models" icon="brain">
+    Use 120B+ parameter models that won't fit locally
+  </Card>
+  
+  <Card title="Same API" icon="code">
+    Works with existing Ollama tools and workflows
+  </Card>
+  
+  <Card title="Flexible Deployment" icon="cloud">
+    Mix local and cloud models based on your needs
+  </Card>
+</CardGroup>
+
+## Pricing
+
+For current pricing information and usage limits, visit [ollama.com/pricing](https://ollama.com/pricing).
+
+## Use Cases
+
+### Development and Testing
+Quickly prototype with large models before deploying locally:
+
+```bash
+# Test with cloud model
+ollama run gpt-oss:120b-cloud "Generate API documentation"
+
+# Deploy locally when ready
+ollama pull codellama:34b
+ollama run codellama:34b "Generate API documentation"
+```
+
+### Hybrid Workflows
+Use local models for privacy-sensitive tasks and cloud models for heavy lifting:
+
+```python
+import ollama
+
+# Sensitive data - local model
+local_response = ollama.chat(
+    model='llama3.2',
+    messages=[{'role': 'user', 'content': 'Analyze customer data'}]
+)
+
+# General purpose - cloud model
+cloud_response = ollama.chat(
+    model='gpt-oss:120b-cloud',
+    messages=[{'role': 'user', 'content': 'Explain machine learning'}]
+)
+```
+
+### Resource-Constrained Environments
+Run on devices without GPUs:
+
+```bash
+# Works on CPU-only laptops
+ollama run gpt-oss:120b-cloud
+```
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Do cloud models support all Ollama features?">
+    Yes, cloud models support the full Ollama API including streaming, embeddings, and multimodal inputs where applicable.
+  </Accordion>
+
+  <Accordion title="Can I switch between local and cloud models?">
+    Absolutely. You can have both local and cloud models installed and switch between them at any time using the same commands.
+  </Accordion>
+
+  <Accordion title="What happens if I lose internet connectivity?">
+    Cloud models require an internet connection. If connectivity is lost, local models will continue to work normally.
+  </Accordion>
+
+  <Accordion title="Are cloud models faster than local models?">
+    It depends on your hardware. Cloud models have network latency but run on powerful infrastructure. Local models on high-end GPUs may be faster for small batches.
+  </Accordion>
+
+  <Accordion title="Can I use cloud models in production?">
+    Yes, cloud models are designed for production use. Check the pricing page for rate limits and terms of service.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Model Library" icon="book" href="https://ollama.com/library">
+    Browse all available models
+  </Card>
+  <Card title="API Reference" icon="code" href="/api">
+    Complete API documentation
+  </Card>
+  <Card title="Local Installation" icon="download" href="/platforms/linux">
+    Set up Ollama locally
+  </Card>
+  <Card title="Python SDK" icon="python" href="https://github.com/ollama/ollama-python">
+    Python integration guide
+  </Card>
+</CardGroup>

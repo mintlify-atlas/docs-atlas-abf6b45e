@@ -1,0 +1,218 @@
+---
+title: 'GET /api/version'
+description: 'Get Ollama version'
+---
+
+Retrieve the version of the Ollama server.
+
+## Request
+
+### Endpoint
+
+```
+GET /api/version
+```
+
+### Headers
+
+```
+HEAD /api/version
+```
+
+Both GET and HEAD methods are supported.
+
+### Request Parameters
+
+No parameters required.
+
+## Response
+
+### Response Fields
+
+<ResponseField name="version" type="string">
+  The version string of the Ollama server (e.g., `"0.1.28"`, `"0.2.0"`)
+</ResponseField>
+
+## Examples
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:11434/api/version
+```
+
+```python Python
+import requests
+
+response = requests.get('http://localhost:11434/api/version')
+version = response.json()['version']
+print(f"Ollama version: {version}")
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:11434/api/version');
+const data = await response.json();
+console.log(`Ollama version: ${data.version}`);
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "version": "0.1.28"
+}
+```
+
+### Check Version Compatibility
+
+```python
+import requests
+from packaging import version
+
+def check_min_version(min_version):
+    response = requests.get('http://localhost:11434/api/version')
+    current = version.parse(response.json()['version'])
+    required = version.parse(min_version)
+    
+    if current >= required:
+        print(f"✓ Version {current} meets requirement {required}")
+        return True
+    else:
+        print(f"✗ Version {current} below requirement {required}")
+        return False
+
+check_min_version('0.1.20')
+```
+
+### Version Check in Application Startup
+
+```javascript
+async function checkOllamaConnection() {
+  try {
+    const response = await fetch('http://localhost:11434/api/version', {
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`✓ Connected to Ollama ${data.version}`);
+      return true;
+    }
+  } catch (error) {
+    console.error('✗ Cannot connect to Ollama:', error.message);
+    return false;
+  }
+}
+
+// Check before starting application
+if (await checkOllamaConnection()) {
+  console.log('Starting application...');
+} else {
+  console.error('Please start Ollama server');
+  process.exit(1);
+}
+```
+
+### Compare Versions
+
+```python
+import requests
+
+def compare_versions(v1, v2):
+    """Compare two semantic versions"""
+    v1_parts = [int(x) for x in v1.split('.')]
+    v2_parts = [int(x) for x in v2.split('.')]
+    
+    # Pad with zeros if needed
+    while len(v1_parts) < len(v2_parts):
+        v1_parts.append(0)
+    while len(v2_parts) < len(v1_parts):
+        v2_parts.append(0)
+    
+    if v1_parts > v2_parts:
+        return 1
+    elif v1_parts < v2_parts:
+        return -1
+    else:
+        return 0
+
+response = requests.get('http://localhost:11434/api/version')
+current_version = response.json()['version']
+required_version = '0.1.20'
+
+if compare_versions(current_version, required_version) >= 0:
+    print(f"Version {current_version} is compatible")
+else:
+    print(f"Please upgrade to version {required_version} or later")
+```
+
+### Health Check with Version
+
+```bash
+#!/bin/bash
+# health-check.sh
+
+VERSION=$(curl -s http://localhost:11434/api/version | jq -r '.version')
+
+if [ -z "$VERSION" ]; then
+  echo "ERROR: Ollama is not responding"
+  exit 1
+else
+  echo "OK: Ollama version $VERSION is running"
+  exit 0
+fi
+```
+
+## Use Cases
+
+### Application Compatibility Check
+
+```python
+import requests
+import sys
+
+REQUIRED_VERSION = '0.1.25'
+
+try:
+    response = requests.get('http://localhost:11434/api/version', timeout=5)
+    version = response.json()['version']
+    
+    if version < REQUIRED_VERSION:
+        print(f"Warning: This application requires Ollama {REQUIRED_VERSION} or later.")
+        print(f"Current version: {version}")
+        print("Some features may not work correctly.")
+        
+        if input("Continue anyway? (y/n): ").lower() != 'y':
+            sys.exit(1)
+except requests.exceptions.RequestException:
+    print("Error: Cannot connect to Ollama server.")
+    print("Please ensure Ollama is running on http://localhost:11434")
+    sys.exit(1)
+```
+
+### Docker Health Check
+
+```dockerfile
+# Dockerfile
+FROM ollama/ollama
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:11434/api/version || exit 1
+```
+
+## Error Responses
+
+### Common Errors
+
+- **Connection Refused**: Ollama server is not running
+- **Timeout**: Server is not responding
+
+<Note>
+This endpoint is useful for health checks and ensuring the Ollama service is running before making other API calls.
+</Note>
+
+<Note>
+Version numbers follow semantic versioning (MAJOR.MINOR.PATCH). Check compatibility requirements for features that may not be available in older versions.
+</Note>

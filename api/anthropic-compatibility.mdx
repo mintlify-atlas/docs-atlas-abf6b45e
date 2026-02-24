@@ -1,0 +1,760 @@
+---
+title: Anthropic API Compatibility
+description: Use Ollama with Anthropic Claude-compatible applications
+---
+
+Ollama provides compatibility with the [Anthropic Messages API](https://docs.anthropic.com/en/api/messages) to help you use Ollama with applications designed for Claude, including Claude Code and other Anthropic-compatible tools.
+
+## Quick Start
+
+Configure your Anthropic client to point to Ollama:
+
+<CodeGroup>
+
+```python Python
+import anthropic
+
+client = anthropic.Anthropic(
+    base_url='http://localhost:11434',
+    api_key='ollama'  # required but ignored
+)
+
+message = client.messages.create(
+    model='llama3.2',
+    max_tokens=1024,
+    messages=[{
+        'role': 'user',
+        'content': 'Explain quantum entanglement'
+    }]
+)
+print(message.content[0].text)
+```
+
+```javascript JavaScript
+import Anthropic from '@anthropic-ai/sdk';
+
+const client = new Anthropic({
+  baseURL: 'http://localhost:11434',
+  apiKey: 'ollama' // required but ignored
+});
+
+const message = await client.messages.create({
+  model: 'llama3.2',
+  max_tokens: 1024,
+  messages: [{ role: 'user', content: 'Explain quantum entanglement' }]
+});
+
+console.log(message.content[0].text);
+```
+
+```bash cURL
+curl -X POST http://localhost:11434/v1/messages \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: ollama" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{
+    "model": "llama3.2",
+    "max_tokens": 1024,
+    "messages": [
+      {"role": "user", "content": "Explain quantum entanglement"}
+    ]
+  }'
+```
+
+</CodeGroup>
+
+## Supported Endpoints
+
+### `/v1/messages`
+
+Send messages to models and receive responses in Anthropic format.
+
+<Note>
+**Supported Features**
+- ✅ Multi-turn conversations
+- ✅ System prompts
+- ✅ Streaming responses
+- ✅ Vision (images)
+- ✅ Tool/function calling
+- ✅ Thinking/extended thinking
+- ✅ Tool results
+</Note>
+
+#### Request Parameters
+
+| Parameter | Type | Description | Support |
+|-----------|------|-------------|:-------:|
+| `model` | string | Model name | ✅ |
+| `max_tokens` | integer | Maximum tokens to generate | ✅ |
+| `messages` | array | Conversation messages | ✅ |
+| `system` | string/array | System prompt | ✅ |
+| `temperature` | number | Sampling temperature (0-1) | ✅ |
+| `top_p` | number | Nucleus sampling | ✅ |
+| `top_k` | integer | Top-k sampling | ✅ |
+| `stream` | boolean | Enable streaming | ✅ |
+| `stop_sequences` | array | Stop sequences | ✅ |
+| `tools` | array | Available tools | ✅ |
+| `thinking` | object | Extended thinking config | ✅ |
+| `tool_choice` | object | Force specific tool | ❌ |
+| `metadata` | object | Request metadata | ❌ |
+
+#### Response Format
+
+```json
+{
+  "id": "msg_123",
+  "type": "message",
+  "role": "assistant",
+  "model": "llama3.2",
+  "content": [
+    {"type": "text", "text": "Quantum entanglement is..."}
+  ],
+  "stop_reason": "end_turn",
+  "usage": {
+    "input_tokens": 12,
+    "output_tokens": 150
+  }
+}
+```
+
+<Steps>
+
+### Basic Message
+
+```python
+message = client.messages.create(
+    model='llama3.2',
+    max_tokens=1024,
+    messages=[{
+        'role': 'user',
+        'content': 'Write a haiku about programming'
+    }]
+)
+print(message.content[0].text)
+```
+
+### System Prompts
+
+```python
+message = client.messages.create(
+    model='llama3.2',
+    max_tokens=1024,
+    system='You are an expert Python developer.',
+    messages=[{
+        'role': 'user',
+        'content': 'How do I read a file in Python?'
+    }]
+)
+```
+
+### Multi-turn Conversations
+
+```python
+message = client.messages.create(
+    model='llama3.2',
+    max_tokens=1024,
+    messages=[
+        {'role': 'user', 'content': 'What is 2+2?'},
+        {'role': 'assistant', 'content': '2+2 equals 4.'},
+        {'role': 'user', 'content': 'What about 2+3?'}
+    ]
+)
+```
+
+### Streaming Responses
+
+```python
+with client.messages.stream(
+    model='llama3.2',
+    max_tokens=1024,
+    messages=[{'role': 'user', 'content': 'Count from 1 to 10'}]
+) as stream:
+    for text in stream.text_stream:
+        print(text, end='', flush=True)
+```
+
+### Vision (Images)
+
+```python
+import base64
+
+with open('image.jpg', 'rb') as f:
+    image_data = base64.b64encode(f.read()).decode('utf-8')
+
+message = client.messages.create(
+    model='llava',
+    max_tokens=1024,
+    messages=[{
+        'role': 'user',
+        'content': [
+            {'type': 'text', 'text': "What's in this image?"},
+            {
+                'type': 'image',
+                'source': {
+                    'type': 'base64',
+                    'media_type': 'image/jpeg',
+                    'data': image_data
+                }
+            }
+        ]
+    }]
+)
+```
+
+<Warning>
+**Image URLs not supported** - Only base64-encoded images are currently supported.
+</Warning>
+
+### Tool Calling
+
+```python
+tools = [{
+    'name': 'get_weather',
+    'description': 'Get the current weather for a location',
+    'input_schema': {
+        'type': 'object',
+        'properties': {
+            'location': {
+                'type': 'string',
+                'description': 'City name'
+            },
+            'unit': {
+                'type': 'string',
+                'enum': ['celsius', 'fahrenheit'],
+                'description': 'Temperature unit'
+            }
+        },
+        'required': ['location']
+    }
+}]
+
+message = client.messages.create(
+    model='llama3.2',
+    max_tokens=1024,
+    tools=tools,
+    messages=[{
+        'role': 'user',
+        'content': 'What is the weather in San Francisco?'
+    }]
+)
+
+# Check for tool calls
+for block in message.content:
+    if block.type == 'tool_use':
+        print(f"Tool: {block.name}")
+        print(f"Input: {block.input}")
+```
+
+### Tool Results
+
+Provide tool execution results back to the model:
+
+```python
+message = client.messages.create(
+    model='llama3.2',
+    max_tokens=1024,
+    tools=tools,
+    messages=[
+        {'role': 'user', 'content': 'What is the weather in Tokyo?'},
+        {
+            'role': 'assistant',
+            'content': [{
+                'type': 'tool_use',
+                'id': 'call_123',
+                'name': 'get_weather',
+                'input': {'location': 'Tokyo', 'unit': 'celsius'}
+            }]
+        },
+        {
+            'role': 'user',
+            'content': [{
+                'type': 'tool_result',
+                'tool_use_id': 'call_123',
+                'content': '22°C, partly cloudy'
+            }]
+        }
+    ]
+)
+```
+
+### Thinking Models
+
+Enable extended thinking for reasoning-capable models:
+
+```python
+message = client.messages.create(
+    model='deepseek-reasoner',
+    max_tokens=2048,
+    thinking={'type': 'enabled'},
+    messages=[{
+        'role': 'user',
+        'content': 'Solve this logic puzzle: ...'
+    }]
+)
+
+# Access thinking content
+for block in message.content:
+    if block.type == 'thinking':
+        print(f"Reasoning: {block.thinking}")
+    elif block.type == 'text':
+        print(f"Answer: {block.text}")
+```
+
+</Steps>
+
+## Using with Claude Code
+
+[Claude Code](https://code.claude.com) can use Ollama as its backend for local, private code assistance.
+
+### Quick Setup
+
+```bash
+# Auto-configure Claude Code with Ollama
+ollama launch claude
+```
+
+This command will:
+1. Prompt you to select a model
+2. Configure Claude Code automatically
+3. Launch Claude Code
+
+### Manual Setup
+
+Set environment variables and run Claude Code:
+
+```bash
+export ANTHROPIC_AUTH_TOKEN=ollama
+export ANTHROPIC_BASE_URL=http://localhost:11434
+export ANTHROPIC_API_KEY=""
+
+claude --model qwen3-coder
+```
+
+### Recommended Models for Coding
+
+<CardGroup cols={2}>
+
+<Card title="Qwen3 Coder" icon="code">
+```bash
+ollama pull qwen3-coder
+```
+Excellent for coding tasks (30B params, requires 24GB VRAM)
+</Card>
+
+<Card title="GLM-4.7 Cloud" icon="cloud">
+```bash
+ollama pull glm-4.7:cloud
+```
+Cloud model for immediate use
+</Card>
+
+<Card title="MiniMax M2.1" icon="bolt">
+```bash
+ollama pull minimax-m2.1:cloud
+```
+Fast cloud model
+</Card>
+
+<Card title="DeepSeek Coder" icon="terminal">
+```bash
+ollama pull deepseek-coder
+```
+Specialized for code generation
+</Card>
+
+</CardGroup>
+
+## Streaming Events
+
+When streaming is enabled, Ollama sends Server-Sent Events (SSE) in Anthropic format:
+
+### Event Types
+
+| Event | Description |
+|-------|-------------|
+| `message_start` | Start of response with initial metadata |
+| `content_block_start` | Start of a content block (text, thinking, tool_use) |
+| `content_block_delta` | Incremental content update |
+| `content_block_stop` | End of a content block |
+| `message_delta` | Message-level updates (stop_reason, usage) |
+| `message_stop` | End of message |
+| `ping` | Keep-alive ping |
+| `error` | Error event |
+
+### Delta Types
+
+| Delta Type | Field | Description |
+|------------|-------|-------------|
+| `text_delta` | `text` | Text content chunk |
+| `thinking_delta` | `thinking` | Thinking/reasoning chunk |
+| `input_json_delta` | `partial_json` | Tool input JSON chunk |
+
+### Streaming Example
+
+```python
+import anthropic
+
+client = anthropic.Anthropic(
+    base_url='http://localhost:11434',
+    api_key='ollama'
+)
+
+with client.messages.stream(
+    model='llama3.2',
+    max_tokens=1024,
+    messages=[{'role': 'user', 'content': 'Explain async/await in Python'}]
+) as stream:
+    for event in stream:
+        if event.type == 'content_block_delta':
+            if event.delta.type == 'text_delta':
+                print(event.delta.text, end='', flush=True)
+```
+
+## Migration Guide
+
+### Switching from Claude to Ollama
+
+<Steps>
+
+### Install Ollama
+
+Download and install from [ollama.com](https://ollama.com).
+
+### Pull a Model
+
+```bash
+ollama pull llama3.2
+```
+
+### Update Your Code
+
+Change only the `base_url` and `api_key`:
+
+```python
+# Before (Anthropic Claude)
+client = anthropic.Anthropic(
+    api_key=os.environ['ANTHROPIC_API_KEY']
+)
+
+# After (Ollama)
+client = anthropic.Anthropic(
+    base_url='http://localhost:11434',
+    api_key='ollama'  # required but ignored
+)
+```
+
+### Use Local Models
+
+Replace Claude model names:
+
+```python
+# Before
+model='claude-3-5-sonnet'
+
+# After
+model='llama3.2'
+```
+
+</Steps>
+
+### Model Name Aliases
+
+For applications expecting Claude model names:
+
+```bash
+# Create an alias
+ollama cp llama3.2 claude-3-5-sonnet
+
+# Use the alias
+client.messages.create(
+    model='claude-3-5-sonnet',
+    ...
+)
+```
+
+## Differences from Anthropic API
+
+### Behavior Differences
+
+<Note>
+- **API Key**: Accepted but not validated (use any string)
+- **Version Header**: `anthropic-version` header is accepted but not enforced
+- **Token Counts**: Approximations based on the model's tokenizer
+- **Request IDs**: Generated locally, not from Anthropic servers
+</Note>
+
+### Not Supported
+
+<CardGroup cols={2}>
+
+<Card title="Token Counting" icon="xmark">
+`/v1/messages/count_tokens` endpoint
+</Card>
+
+<Card title="Tool Choice" icon="xmark">
+`tool_choice` parameter (auto/any/tool/none)
+</Card>
+
+<Card title="Prompt Caching" icon="xmark">
+`cache_control` blocks for caching
+</Card>
+
+<Card title="Batches API" icon="xmark">
+`/v1/messages/batches` for async processing
+</Card>
+
+<Card title="PDF Support" icon="xmark">
+`document` content blocks with PDFs
+</Card>
+
+<Card title="Citations" icon="xmark">
+`citations` content blocks
+</Card>
+
+</CardGroup>
+
+### Partial Support
+
+| Feature | Status |
+|---------|--------|
+| Image content | ✅ Base64 / ❌ URLs |
+| Extended thinking | ✅ Basic / ⚠️ `budget_tokens` not enforced |
+| Web search | ✅ Built-in tool (Ollama extension) |
+
+## Advanced Features
+
+### Web Search (Ollama Extension)
+
+Ollama extends Anthropic's API with built-in web search:
+
+```python
+tools = [{
+    'type': 'web_search_20250305',
+    'name': 'web_search',
+    'max_uses': 5
+}]
+
+message = client.messages.create(
+    model='llama3.2',
+    max_tokens=1024,
+    tools=tools,
+    messages=[{
+        'role': 'user',
+        'content': 'What are the latest AI developments?'
+    }]
+)
+```
+
+<Note>
+**Web search requires internet connectivity** and is subject to Ollama's cloud service availability.
+</Note>
+
+### Content Block Types
+
+Ollama supports all standard Anthropic content block types:
+
+- `text` - Text content
+- `image` - Base64-encoded images
+- `tool_use` - Tool/function calls
+- `tool_result` - Tool execution results
+- `thinking` - Reasoning/thinking content
+- `server_tool_use` - Server-side tool calls (web_search)
+- `web_search_tool_result` - Web search results
+
+## Best Practices
+
+<AccordionGroup>
+
+<Accordion title="Choosing Models">
+Select models based on your use case:
+- **Chat**: `llama3.2`, `mistral`, `gpt-oss:20b`
+- **Coding**: `qwen3-coder`, `deepseek-coder`, `codellama`
+- **Vision**: `llava`, `bakllava`
+- **Reasoning**: `deepseek-reasoner`
+</Accordion>
+
+<Accordion title="Optimizing Context">
+- Use appropriate `max_tokens` to control response length
+- Clear conversation history periodically for long sessions
+- Use `system` prompts to set consistent behavior
+</Accordion>
+
+<Accordion title="Error Handling">
+Handle errors gracefully:
+```python
+try:
+    message = client.messages.create(...)
+except anthropic.APIError as e:
+    print(f"API Error: {e}")
+except Exception as e:
+    print(f"Unexpected error: {e}")
+```
+</Accordion>
+
+</AccordionGroup>
+
+## Examples
+
+### Complete Chatbot
+
+```python
+import anthropic
+
+client = anthropic.Anthropic(
+    base_url='http://localhost:11434',
+    api_key='ollama'
+)
+
+conversation = []
+system_prompt = "You are a helpful, friendly assistant."
+
+while True:
+    user_input = input('You: ')
+    if user_input.lower() in ['quit', 'exit']:
+        break
+    
+    conversation.append({'role': 'user', 'content': user_input})
+    
+    response = client.messages.create(
+        model='llama3.2',
+        max_tokens=1024,
+        system=system_prompt,
+        messages=conversation
+    )
+    
+    assistant_message = response.content[0].text
+    print(f'Assistant: {assistant_message}')
+    
+    conversation.append({'role': 'assistant', 'content': assistant_message})
+```
+
+### Tool-based Weather Agent
+
+```python
+import anthropic
+import json
+
+client = anthropic.Anthropic(
+    base_url='http://localhost:11434',
+    api_key='ollama'
+)
+
+def get_weather(location, unit='celsius'):
+    # Simulated weather API
+    return f"The weather in {location} is 22°{unit[0].upper()}, sunny"
+
+tools = [{
+    'name': 'get_weather',
+    'description': 'Get current weather for a location',
+    'input_schema': {
+        'type': 'object',
+        'properties': {
+            'location': {'type': 'string'},
+            'unit': {'type': 'string', 'enum': ['celsius', 'fahrenheit']}
+        },
+        'required': ['location']
+    }
+}]
+
+messages = [{'role': 'user', 'content': 'What is the weather in Paris?'}]
+
+while True:
+    response = client.messages.create(
+        model='llama3.2',
+        max_tokens=1024,
+        tools=tools,
+        messages=messages
+    )
+    
+    if response.stop_reason == 'tool_use':
+        # Execute tools
+        tool_results = []
+        for block in response.content:
+            if block.type == 'tool_use':
+                result = get_weather(**block.input)
+                tool_results.append({
+                    'type': 'tool_result',
+                    'tool_use_id': block.id,
+                    'content': result
+                })
+        
+        # Add assistant's tool use
+        messages.append({'role': 'assistant', 'content': response.content})
+        # Add tool results
+        messages.append({'role': 'user', 'content': tool_results})
+    else:
+        # Final response
+        print(response.content[0].text)
+        break
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+
+<Accordion title="Connection Errors">
+Ensure Ollama is running:
+```bash
+ollama serve
+```
+
+Check the service is accessible:
+```bash
+curl http://localhost:11434/v1/messages
+```
+</Accordion>
+
+<Accordion title="Model Not Found">
+Pull the model first:
+```bash
+ollama pull llama3.2
+```
+
+List available models:
+```bash
+ollama list
+```
+</Accordion>
+
+<Accordion title="Slow Responses">
+- Check GPU memory usage
+- Use smaller models for faster inference
+- Reduce `max_tokens` for shorter responses
+- Close other applications using GPU
+</Accordion>
+
+<Accordion title="Token Limit Errors">
+The `max_tokens` parameter is required in Anthropic API:
+```python
+# Always specify max_tokens
+message = client.messages.create(
+    model='llama3.2',
+    max_tokens=1024,  # Required
+    messages=[...]
+)
+```
+</Accordion>
+
+</AccordionGroup>
+
+## Resources
+
+<CardGroup cols={2}>
+
+<Card title="Ollama Models" icon="book" href="https://ollama.com/library">
+Browse available models
+</Card>
+
+<Card title="Anthropic SDK" icon="python" href="https://github.com/anthropics/anthropic-sdk-python">
+Anthropic Python library
+</Card>
+
+<Card title="Claude Code" icon="code" href="https://code.claude.com">
+Claude's coding assistant
+</Card>
+
+<Card title="Community" icon="discord" href="https://discord.gg/ollama">
+Join the Ollama community
+</Card>
+
+</CardGroup>

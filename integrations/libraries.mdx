@@ -1,0 +1,408 @@
+---
+title: Libraries & SDKs
+description: Official and community libraries for integrating Ollama into your applications
+icon: book
+---
+
+Ollama provides official SDKs for Python and JavaScript, plus a rich ecosystem of community libraries for other languages and frameworks.
+
+## Official Libraries
+
+Official SDKs maintained by the Ollama team provide the best integration experience.
+
+### Python
+
+<Card title="ollama-python" icon="python" href="https://github.com/ollama/ollama-python">
+  Official Python library with async support
+</Card>
+
+**Installation:**
+
+```bash
+pip install ollama
+```
+
+**Usage:**
+
+```python
+from ollama import chat
+
+response = chat(
+  model='gemma3',
+  messages=[
+    {
+      'role': 'user',
+      'content': 'Why is the sky blue?',
+    },
+  ]
+)
+
+print(response.message.content)
+```
+
+**Features:**
+
+- Synchronous and async APIs
+- Streaming support
+- Type hints and IDE autocompletion
+- Complete API coverage (chat, generate, embeddings, etc.)
+
+**Learn more:**
+
+<CardGroup cols={2}>
+  <Card title="GitHub" icon="github" href="https://github.com/ollama/ollama-python">
+    Source code and documentation
+  </Card>
+  <Card title="PyPI" icon="python" href="https://pypi.org/project/ollama/">
+    Package on PyPI
+  </Card>
+</CardGroup>
+
+### JavaScript
+
+<Card title="ollama-js" icon="javascript" href="https://github.com/ollama/ollama-js">
+  Official JavaScript/TypeScript library for Node and browsers
+</Card>
+
+**Installation:**
+
+```bash
+npm i ollama
+```
+
+**Usage:**
+
+```javascript
+import ollama from "ollama";
+
+const response = await ollama.chat({
+  model: "gemma3",
+  messages: [
+    { role: "user", content: "Why is the sky blue?" }
+  ],
+});
+
+console.log(response.message.content);
+```
+
+**Features:**
+
+- Works in Node.js and browsers
+- TypeScript support with full type definitions
+- Promise-based async API
+- Streaming support
+- Complete API coverage
+
+**Learn more:**
+
+<CardGroup cols={2}>
+  <Card title="GitHub" icon="github" href="https://github.com/ollama/ollama-js">
+    Source code and documentation
+  </Card>
+  <Card title="npm" icon="npm" href="https://www.npmjs.com/package/ollama">
+    Package on npm
+  </Card>
+</CardGroup>
+
+---
+
+## Community Libraries
+
+The Ollama community has built SDKs for many other languages and frameworks.
+
+### .NET / C#
+
+<CardGroup cols={2}>
+  <Card title="OllamaSharp" href="https://github.com/awaescher/OllamaSharp">
+    .NET SDK for Ollama
+  </Card>
+  <Card title="LangChain for .NET" href="https://github.com/tryAGI/LangChain">
+    .NET LangChain with Ollama support ([example](https://github.com/tryAGI/LangChain/blob/main/examples/LangChain.Samples.OpenAI/Program.cs))
+  </Card>
+  <Card title="LlmTornado" href="https://github.com/lofcz/llmtornado">
+    Unified C# interface for multiple LLM APIs
+  </Card>
+</CardGroup>
+
+### Rust
+
+<CardGroup cols={2}>
+  <Card title="ollama-rs" href="https://github.com/pepperoni21/ollama-rs">
+    Rust SDK for Ollama
+  </Card>
+  <Card title="LangChainRust" href="https://github.com/Abraxas-365/langchain-rust">
+    Rust LangChain ([example](https://github.com/Abraxas-365/langchain-rust/blob/main/examples/llm_ollama.rs))
+  </Card>
+</CardGroup>
+
+### Ruby
+
+<Card title="ruby_llm" href="https://github.com/crmne/ruby_llm">
+  Ruby library for LLMs including Ollama
+</Card>
+
+### Java
+
+<CardGroup cols={2}>
+  <Card title="Ollama4j" href="https://github.com/ollama4j/ollama4j">
+    Java SDK for Ollama
+  </Card>
+  <Card title="LangChain4j" href="https://github.com/langchain4j/langchain4j">
+    Java LangChain ([example](https://github.com/langchain4j/langchain4j-examples/tree/main/ollama-examples/src/main/java))
+  </Card>
+  <Card title="Agents-Flex" href="https://github.com/agents-flex/agents-flex">
+    Java agent framework ([example](https://github.com/agents-flex/agents-flex/tree/main/agents-flex-llm/agents-flex-llm-ollama/src/test/java/com/agentsflex/llm/ollama))
+  </Card>
+</CardGroup>
+
+### Go
+
+<CardGroup cols={2}>
+  <Card title="LangChainGo" href="https://github.com/tmc/langchaingo/">
+    Go LangChain ([example](https://github.com/tmc/langchaingo/tree/main/examples/ollama-completion-example))
+  </Card>
+  <Card title="chromem-go" href="https://github.com/philippgille/chromem-go">
+    Go vector database with Ollama embeddings ([example](https://github.com/philippgille/chromem-go/tree/v0.5.0/examples/rag-wikipedia-ollama))
+  </Card>
+</CardGroup>
+
+### PHP
+
+<Card title="LLPhant" href="https://github.com/theodo-group/LLPhant?tab=readme-ov-file#ollama">
+  PHP AI framework with Ollama support
+</Card>
+
+### R
+
+<Card title="rollama" href="https://github.com/JBGruber/rollama">
+  R SDK for Ollama
+</Card>
+
+### Julia
+
+<Card title="PromptingTools.jl" href="https://github.com/svilupp/PromptingTools.jl">
+  Julia LLM toolkit ([example](https://svilupp.github.io/PromptingTools.jl/dev/examples/working_with_ollama))
+</Card>
+
+### Swift
+
+<Card title="Ollama for Swift" href="https://github.com/mattt/ollama-swift">
+  Swift SDK for Ollama
+</Card>
+
+### C++
+
+<Card title="Ollama-hpp" href="https://github.com/jmont-dev/ollama-hpp">
+  C++ SDK for Ollama
+</Card>
+
+### Dart
+
+<Card title="LangChainDart" href="https://github.com/davidmigloz/langchain_dart">
+  Dart LangChain with Ollama support
+</Card>
+
+### Elixir
+
+<Card title="Elixir LangChain" href="https://github.com/brainlid/langchain">
+  Elixir LangChain with Ollama support
+</Card>
+
+---
+
+## Frameworks
+
+Popular AI frameworks with Ollama integration.
+
+### LangChain
+
+<CardGroup cols={2}>
+  <Card title="LangChain Python" href="https://python.langchain.com/docs/integrations/chat/ollama/">
+    Python LangChain integration
+  </Card>
+  <Card title="LangChain.js" href="https://js.langchain.com/docs/integrations/chat/ollama">
+    JavaScript LangChain ([example](https://js.langchain.com/docs/tutorials/local_rag/))
+  </Card>
+</CardGroup>
+
+### LlamaIndex
+
+<CardGroup cols={2}>
+  <Card title="LlamaIndex Python" href="https://docs.llamaindex.ai/en/stable/examples/llm/ollama/">
+    Python data framework for LLMs
+  </Card>
+  <Card title="LlamaIndexTS" href="https://ts.llamaindex.ai/modules/llms/available_llms/ollama">
+    TypeScript LlamaIndex
+  </Card>
+</CardGroup>
+
+### Other Frameworks
+
+<CardGroup cols={2}>
+  <Card title="Semantic Kernel" href="https://github.com/microsoft/semantic-kernel/tree/main/python/semantic_kernel/connectors/ai/ollama">
+    Microsoft's AI orchestration SDK
+  </Card>
+  <Card title="Spring AI" href="https://github.com/spring-projects/spring-ai">
+    Spring framework AI support ([docs](https://docs.spring.io/spring-ai/reference/api/chat/ollama-chat.html))
+  </Card>
+  <Card title="LiteLLM" href="https://github.com/BerriAI/litellm">
+    Unified API for 100+ LLM providers
+  </Card>
+  <Card title="Haystack" href="https://github.com/deepset-ai/haystack-integrations/blob/main/integrations/ollama.md">
+    AI pipeline framework
+  </Card>
+  <Card title="Firebase Genkit" href="https://firebase.google.com/docs/genkit/plugins/ollama">
+    Google's AI framework
+  </Card>
+  <Card title="Portkey" href="https://portkey.ai/docs/welcome/integration-guides/ollama">
+    AI gateway with Ollama support
+  </Card>
+  <Card title="any-llm" href="https://github.com/mozilla-ai/any-llm">
+    Unified LLM interface by Mozilla
+  </Card>
+</CardGroup>
+
+---
+
+## REST API
+
+If there's no SDK for your language, you can use the REST API directly.
+
+### Example: Chat Endpoint
+
+```bash
+curl http://localhost:11434/api/chat -d '{
+  "model": "gemma3",
+  "messages": [{
+    "role": "user",
+    "content": "Why is the sky blue?"
+  }],
+  "stream": false
+}'
+```
+
+### Example: Generate Endpoint
+
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "gemma3",
+  "prompt": "Why is the sky blue?",
+  "stream": false
+}'
+```
+
+### Example: Embeddings
+
+```bash
+curl http://localhost:11434/api/embeddings -d '{
+  "model": "nomic-embed-text",
+  "prompt": "The sky is blue because of Rayleigh scattering"
+}'
+```
+
+<Tip>
+  See the [API documentation](/api/introduction) for complete endpoint details.
+</Tip>
+
+---
+
+## OpenAI Compatibility
+
+Ollama provides OpenAI-compatible APIs, so you can use existing OpenAI SDKs:
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+  base_url='http://localhost:11434/v1',
+  api_key='ollama',  # required but unused
+)
+
+response = client.chat.completions.create(
+  model="gemma3",
+  messages=[
+    {"role": "user", "content": "Why is the sky blue?"}
+  ]
+)
+
+print(response.choices[0].message.content)
+```
+
+<CardGroup cols={2}>
+  <Card title="OpenAI API" icon="code" href="/api/openai-compatibility">
+    OpenAI-compatible endpoints
+  </Card>
+  <Card title="Anthropic API" icon="code" href="/api/anthropic-compatibility">
+    Anthropic-compatible endpoints
+  </Card>
+</CardGroup>
+
+---
+
+## Testing Libraries
+
+<Card title="Testcontainers" href="https://testcontainers.com/modules/ollama/">
+  Container-based testing for Ollama
+</Card>
+
+Perfect for integration tests:
+
+```python
+from testcontainers.ollama import OllamaContainer
+
+with OllamaContainer() as ollama:
+    # Run your tests
+    response = ollama.query("gemma3", "Hello!")
+```
+
+---
+
+## Building Your Own SDK
+
+If you're building a new Ollama SDK:
+
+<Steps>
+  <Step title="Study the REST API">
+    Read the [API documentation](/api/introduction)
+  </Step>
+  <Step title="Check existing SDKs">
+    Review [ollama-python](https://github.com/ollama/ollama-python) and [ollama-js](https://github.com/ollama/ollama-js) for patterns
+  </Step>
+  <Step title="Support streaming">
+    Implement streaming for chat and generate endpoints
+  </Step>
+  <Step title="Add type safety">
+    Provide strong types/schemas for requests and responses
+  </Step>
+  <Step title="Handle errors">
+    Gracefully handle network errors and API errors
+  </Step>
+  <Step title="Write tests">
+    Use Testcontainers or a local Ollama instance
+  </Step>
+  <Step title="Document examples">
+    Provide clear usage examples in your README
+  </Step>
+  <Step title="Submit to community">
+    Open a PR to add your SDK to the [Ollama README](https://github.com/ollama/ollama#community-integrations)
+  </Step>
+</Steps>
+
+---
+
+## Learn More
+
+<CardGroup cols={2}>
+  <Card title="REST API Reference" icon="code" href="/api/introduction">
+    Complete API documentation
+  </Card>
+  <Card title="Python Examples" icon="python" href="https://github.com/ollama/ollama-python/tree/main/examples">
+    Official Python examples
+  </Card>
+  <Card title="JavaScript Examples" icon="javascript" href="https://github.com/ollama/ollama-js/tree/main/examples">
+    Official JavaScript examples
+  </Card>
+  <Card title="Community Integrations" icon="users" href="https://github.com/ollama/ollama#community-integrations">
+    Full list of community projects
+  </Card>
+</CardGroup>

@@ -1,0 +1,172 @@
+---
+title: 'CLI Overview'
+description: 'Complete reference for the Ollama command-line interface'
+icon: 'terminal'
+---
+
+## Introduction
+
+Ollama provides a powerful command-line interface for running and managing large language models locally. The CLI allows you to pull models from registries, run them interactively or in scripts, and manage your model library.
+
+## Basic Usage
+
+```bash
+ollama [command] [options]
+```
+
+## Available Commands
+
+<CardGroup cols={2}>
+  <Card title="serve" icon="server" href="/cli/serve">
+    Start the Ollama server
+  </Card>
+  
+  <Card title="run" icon="play" href="/cli/run">
+    Run a model interactively
+  </Card>
+  
+  <Card title="pull" icon="download" href="/cli/pull">
+    Pull a model from a registry
+  </Card>
+  
+  <Card title="push" icon="upload" href="/cli/push">
+    Push a model to a registry
+  </Card>
+  
+  <Card title="create" icon="plus" href="/cli/create">
+    Create a custom model
+  </Card>
+  
+  <Card title="show" icon="eye" href="/cli/show">
+    Show model information
+  </Card>
+  
+  <Card title="list" icon="list" href="/cli/list">
+    List available models
+  </Card>
+  
+  <Card title="ps" icon="table" href="/cli/ps">
+    List running models
+  </Card>
+  
+  <Card title="stop" icon="stop" href="/cli/stop">
+    Stop a running model
+  </Card>
+  
+  <Card title="rm" icon="trash" href="/cli/rm">
+    Remove a model
+  </Card>
+  
+  <Card title="launch" icon="rocket" href="/cli/launch">
+    Launch the Ollama menu or integrations
+  </Card>
+</CardGroup>
+
+## Common Patterns
+
+### Quick Start
+
+Pull and run a model in one command:
+
+```bash
+ollama run llama3.2
+```
+
+If the model isn't present locally, it will be pulled automatically.
+
+### Piping Input
+
+Use Ollama in Unix pipelines:
+
+```bash
+cat document.txt | ollama run llama3.2 "Summarize this:"
+```
+
+### Non-Interactive Mode
+
+Run a one-off prompt without entering interactive mode:
+
+```bash
+ollama run llama3.2 "What is the capital of France?"
+```
+
+### JSON Output
+
+Request structured JSON responses:
+
+```bash
+ollama run llama3.2 --format json "List 3 colors as a JSON array"
+```
+
+### Keep Models Loaded
+
+Control how long models stay in memory:
+
+```bash
+# Keep loaded for 10 minutes
+ollama run llama3.2 --keepalive 10m
+
+# Unload immediately after response
+ollama run llama3.2 --keepalive 0
+
+# Keep loaded indefinitely
+ollama run llama3.2 --keepalive -1
+```
+
+## Environment Variables
+
+<ParamField path="OLLAMA_HOST" type="string" default="http://127.0.0.1:11434">
+  The host address for the Ollama server
+</ParamField>
+
+<ParamField path="OLLAMA_MODELS" type="string" default="~/.ollama/models">
+  Directory where models are stored
+</ParamField>
+
+<ParamField path="OLLAMA_NOHISTORY" type="boolean" default="false">
+  Disable saving command history in interactive mode
+</ParamField>
+
+<ParamField path="OLLAMA_EDITOR" type="string">
+  Editor to use for multi-line input in interactive mode
+</ParamField>
+
+## Global Flags
+
+<ParamField path="--version" type="boolean" default="false">
+  Show version information
+</ParamField>
+
+<ParamField path="--verbose" type="boolean" default="false">
+  Show detailed output including timing information
+</ParamField>
+
+<ParamField path="--nowordwrap" type="boolean" default="false">
+  Disable automatic word wrapping in output
+</ParamField>
+
+## Exit Codes
+
+- `0` - Success
+- `1` - General error
+- Non-zero - Specific error occurred (check error message)
+
+## Getting Help
+
+Get help for any command:
+
+```bash
+ollama [command] --help
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Running Models" icon="play" href="/cli/run">
+    Learn how to run and interact with models
+  </Card>
+  
+  <Card title="Creating Models" icon="wrench" href="/cli/create">
+    Create custom models with Modelfiles
+  </Card>
+</CardGroup>

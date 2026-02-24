@@ -1,0 +1,282 @@
+---
+title: 'ollama stop'
+description: 'Stop a running model and unload it from memory'
+icon: 'stop'
+---
+
+## Synopsis
+
+```bash
+ollama stop MODEL
+```
+
+## Description
+
+The `stop` command unloads a running model from memory immediately, freeing up system resources (RAM/VRAM). This is useful when:
+- You're done with a model and want to free memory
+- You want to load a different model
+- You need to reduce system resource usage
+- You're switching tasks and don't need the model loaded
+
+Normally, models unload automatically after a keep-alive timeout (default 5 minutes). The `stop` command forces immediate unloading.
+
+## Arguments
+
+<ParamField path="MODEL" type="string" required>
+  Name of the model to stop. Must be currently running.
+  
+  Examples:
+  - `llama3.2`
+  - `mistral:7b-instruct`
+  - `myusername/custom-model`
+</ParamField>
+
+## Options
+
+The `stop` command has no flags or options.
+
+## Examples
+
+### Stop a Running Model
+
+Stop a model that's currently loaded:
+
+```bash
+ollama stop llama3.2
+```
+
+No output on success. The model is immediately unloaded from memory.
+
+### Stop with Full Name
+
+Include the tag explicitly:
+
+```bash
+ollama stop llama3.2:latest
+```
+
+### Stop Multiple Models
+
+To stop multiple models, run the command for each:
+
+```bash
+ollama stop llama3.2
+ollama stop mistral:7b
+ollama stop codellama
+```
+
+### Check Before Stopping
+
+See what's running before stopping:
+
+```bash
+ollama ps
+ollama stop llama3.2
+ollama ps
+```
+
+## Behavior
+
+### What Happens When You Stop
+
+1. **Abort in-progress requests**: Any active inference is cancelled
+2. **Flush state**: Model state and KV cache are discarded
+3. **Unload from memory**: Model weights are removed from RAM/VRAM
+4. **Free resources**: Memory becomes available for other models or applications
+
+### Keep-Alive Override
+
+Stopping a model is equivalent to setting `--keepalive 0` when running it:
+
+```bash
+# These have the same effect
+ollama run llama3.2 --keepalive 0 "Hello"
+ollama stop llama3.2
+```
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Free Memory" icon="memory">
+    Stop models to free up RAM/VRAM for other applications
+  </Card>
+  
+  <Card title="Switch Models" icon="arrows-rotate">
+    Stop one model before loading another when memory is limited
+  </Card>
+  
+  <Card title="End Session" icon="power-off">
+    Clean up after a long-running chat session
+  </Card>
+  
+  <Card title="Reduce Power" icon="bolt">
+    Stop models to reduce GPU power consumption on laptops
+  </Card>
+</CardGroup>
+
+## Scripting Usage
+
+Use in scripts and automation:
+
+```bash
+# Stop all running models
+for model in $(ollama ps | tail -n +2 | awk '{print $1}'); do
+    ollama stop "$model"
+done
+
+# Stop model after a task
+ollama run llama3.2 "Summarize this: ..."
+ollama stop llama3.2
+
+# Stop model with error handling
+if ollama stop llama3.2 2>/dev/null; then
+    echo "Model stopped successfully"
+else
+    echo "Model was not running or error occurred"
+fi
+```
+
+## Memory Recovery
+
+Check memory before and after stopping:
+
+```bash
+# Check GPU memory
+nvidia-smi
+
+# Check what's running
+ollama ps
+
+# Stop a model
+ollama stop llama3.2
+
+# Verify it stopped
+ollama ps
+
+# Check GPU memory again
+nvidia-smi
+```
+
+## Automatic Unloading
+
+By default, models unload automatically after the keep-alive timer expires:
+
+```bash
+# Default behavior (5 minutes)
+ollama run llama3.2 "Hello"
+# Wait 5 minutes...
+# Model unloads automatically
+
+# Keep loaded for 10 minutes
+ollama run llama3.2 --keepalive 10m "Hello"
+
+# Keep loaded indefinitely
+ollama run llama3.2 --keepalive -1
+# Must use 'ollama stop' to unload
+
+# Unload immediately after response
+ollama run llama3.2 --keepalive 0 "Hello"
+```
+
+## Environment Variables
+
+<ParamField path="OLLAMA_HOST" type="string" default="http://127.0.0.1:11434">
+  Ollama server address
+</ParamField>
+
+<ParamField path="OLLAMA_KEEP_ALIVE" type="duration" default="5m">
+  Default keep-alive time (server configuration)
+</ParamField>
+
+## Exit Codes
+
+- `0` - Success, model stopped
+- `1` - Error occurred
+
+## Troubleshooting
+
+### Model Not Found
+
+```
+Error: couldn't find model "llama3.2" to stop
+```
+
+**Solution**: The model is not currently running. Check what's running:
+
+```bash
+ollama ps
+```
+
+If you want to stop a model that exists but isn't loaded, there's nothing to do—it's already not using resources.
+
+### Server Not Running
+
+```
+Error: could not connect to ollama server
+```
+
+**Solution**: Start the Ollama server:
+
+```bash
+ollama serve
+```
+
+### Model Name Mismatch
+
+If you created a model with a custom tag, use the full name:
+
+```bash
+# Wrong
+ollama stop mymodel
+
+# Correct
+ollama stop mymodel:latest
+# Or
+ollama stop mymodel:v1
+```
+
+## Graceful vs Forced Stop
+
+Ollama performs a graceful stop:
+- In-progress requests are cancelled (not completed)
+- State is saved if needed
+- Resources are released cleanly
+- No data corruption
+
+This is different from killing the server process, which is not recommended.
+
+## When to Stop Models
+
+### ✅ When to Use Stop
+
+- Switching to a different model and memory is limited
+- Done with a model for the day
+- Need to free resources for other applications
+- Model is set to `--keepalive -1` (never unload)
+- Want to reload a model with different settings
+
+### ❌ When NOT to Use Stop
+
+- Between prompts in the same session (loses context)
+- When the model will be used again soon (let auto-unload handle it)
+- To interrupt a response (use Ctrl+C instead)
+
+## Performance Impact
+
+Stopping and reloading a model has costs:
+
+| Model Size | Typical Load Time | GPU Memory |
+|------------|------------------|------------|
+| 3B params  | 1-3 seconds      | ~2 GB      |
+| 7B params  | 3-8 seconds      | ~4-5 GB    |
+| 13B params | 8-15 seconds     | ~8-9 GB    |
+| 34B params | 20-40 seconds    | ~20 GB     |
+| 70B params | 40-90 seconds    | ~40 GB     |
+
+If you'll use the model again within the keep-alive period, let it stay loaded.
+
+## Related Commands
+
+- [`ollama ps`](/cli/ps) - See which models are currently running
+- [`ollama run`](/cli/run) - Run a model with custom keep-alive settings
+- [`ollama serve`](/cli/serve) - Configure default keep-alive time

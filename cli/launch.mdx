@@ -1,0 +1,376 @@
+---
+title: 'ollama launch'
+description: 'Launch the Ollama menu or integrations with editor tools'
+icon: 'rocket'
+---
+
+## Synopsis
+
+```bash
+ollama launch
+ollama launch [INTEGRATION] [OPTIONS]
+ollama launch [INTEGRATION] -- [EXTRA_ARGS...]
+```
+
+## Description
+
+The `launch` command provides a convenient way to:
+- Open the Ollama interactive menu
+- Launch editor integrations (Claude Code, Cline, Codex, Droid, OpenCode, OpenClaw, Pi)
+- Configure model selections for integrations
+- Pass additional arguments to launched applications
+
+Without arguments, `launch` is equivalent to running `ollama` directly and opens the main TUI menu.
+
+## Arguments
+
+<ParamField path="INTEGRATION" type="string">
+  Optional integration name to launch directly. Available integrations:
+  - `claude` - Claude Code
+  - `cline` - Cline
+  - `codex` - Codex
+  - `droid` - Droid
+  - `opencode` - OpenCode
+  - `openclaw` - OpenClaw (aliases: `clawdbot`, `moltbot`)
+  - `pi` - Pi
+</ParamField>
+
+<ParamField path="EXTRA_ARGS" type="string[]">
+  Additional arguments to pass to the integration. Use `--` to separate Ollama arguments from integration arguments.
+  
+  ```bash
+  ollama launch codex -- -p myprofile
+  ```
+</ParamField>
+
+## Options
+
+<ParamField path="--model" type="string">
+  Specify a model to use with the integration without opening the selector
+  
+  ```bash
+  ollama launch claude --model llama3.2
+  ```
+</ParamField>
+
+<ParamField path="--config" type="boolean" default="false">
+  Configure the integration (select/change models) without launching
+  
+  ```bash
+  ollama launch droid --config
+  ```
+</ParamField>
+
+## Examples
+
+### Launch Interactive Menu
+
+Open the main Ollama menu:
+
+```bash
+ollama launch
+```
+
+This shows:
+- Run a model
+- Launch editor integrations
+- Configure settings
+
+### Launch Specific Integration
+
+Launch an integration directly:
+
+```bash
+ollama launch claude
+```
+
+If not configured, you'll be prompted to select a model.
+
+### Launch with Model Selection
+
+Specify a model without prompting:
+
+```bash
+ollama launch opencode --model llama3.2
+```
+
+### Configure Integration
+
+Change model selection without launching:
+
+```bash
+ollama launch codex --config
+```
+
+This opens the model selector and saves your choice.
+
+### Pass Additional Arguments
+
+Pass arguments to the integration:
+
+```bash
+# Pass profile argument to Codex
+ollama launch codex -- -p myprofile
+
+# Pass multiple arguments
+ollama launch codex -- --sandbox workspace-write --debug
+
+# Pass arguments with model selection
+ollama launch codex --model llama3.2 -- -p production
+```
+
+## Supported Integrations
+
+### Claude Code
+
+```bash
+ollama launch claude
+ollama launch claude --model llama3.2
+```
+
+Launches the Claude Code extension with Ollama backend.
+
+### Cline
+
+```bash
+ollama launch cline
+ollama launch cline --config
+```
+
+Launches Cline with configured model(s).
+
+### Codex
+
+```bash
+ollama launch codex
+ollama launch codex -- -p myprofile
+```
+
+Launches Codex with optional profile.
+
+### Droid
+
+```bash
+ollama launch droid
+ollama launch droid --model mistral
+```
+
+Launches Droid with Ollama integration.
+
+### OpenCode
+
+```bash
+ollama launch opencode
+ollama launch opencode --model codellama
+```
+
+Launches OpenCode with the specified model.
+
+### OpenClaw
+
+```bash
+ollama launch openclaw
+ollama launch clawdbot  # Alias
+ollama launch moltbot   # Alias
+```
+
+Launches OpenClaw (Clawdbot/Moltbot).
+
+### Pi
+
+```bash
+ollama launch pi
+ollama launch pi --config
+```
+
+Launches Pi with model configuration.
+
+## Configuration
+
+Integrations are configured in `~/.ollama/config.json`:
+
+```json
+{
+  "integrations": {
+    "claude": {
+      "models": ["llama3.2:latest"],
+      "onboarded": true
+    },
+    "codex": {
+      "models": ["codellama:7b", "mistral:7b"],
+      "onboarded": true
+    }
+  },
+  "last_model": "llama3.2:latest",
+  "last_selection": "claude"
+}
+```
+
+### Configuration Options
+
+- **models**: Array of model names configured for the integration
+- **onboarded**: Whether initial setup has been completed
+- **aliases**: Custom aliases for models (integration-specific)
+
+## Integration States
+
+### Not Configured
+
+First launch prompts for model selection:
+
+```bash
+ollama launch claude
+# Shows model picker
+# Saves selection
+# Launches Claude Code
+```
+
+### Configured
+
+Subsequent launches use saved model:
+
+```bash
+ollama launch claude
+# Uses saved model
+# Launches immediately
+```
+
+### Reconfigure
+
+Change the configured model:
+
+```bash
+ollama launch claude --config
+# Opens model picker
+# Updates configuration
+# Does NOT launch
+```
+
+## Model Selection
+
+When prompted, you can select from:
+- Local models (from `ollama list`)
+- Cloud models (if enabled)
+- Recently used models (highlighted)
+
+Use arrow keys to navigate and Enter to select.
+
+## Environment Variables
+
+<ParamField path="OLLAMA_HOST" type="string" default="http://127.0.0.1:11434">
+  Ollama server address
+</ParamField>
+
+## Exit Codes
+
+- `0` - Success
+- `1` - Error (integration not found, model not available, etc.)
+
+## Troubleshooting
+
+### Integration Not Found
+
+```
+Error: unknown integration: myapp
+```
+
+**Solution**: Use one of the supported integration names:
+
+```bash
+ollama launch  # See list in menu
+```
+
+### Integration Not Installed
+
+If the integration application isn't installed:
+
+```
+Error: integration 'claude' is not installed
+```
+
+**Solution**: Install the integration first, then try again.
+
+### Model Not Available
+
+If the specified model doesn't exist:
+
+```
+Error: model 'mymodel' not found
+```
+
+**Solution**: Pull the model or choose an available one:
+
+```bash
+ollama list
+ollama pull llama3.2
+ollama launch claude --model llama3.2
+```
+
+### Server Not Running
+
+```
+Error: could not connect to ollama server
+```
+
+**Solution**: The `launch` command starts the server automatically if needed. If this error persists, try:
+
+```bash
+ollama serve
+```
+
+## Advanced Usage
+
+### Automation
+
+Launch integrations from scripts:
+
+```bash
+#!/bin/bash
+# Launch OpenCode with specific model
+ollama launch opencode --model codellama:7b
+```
+
+### Multiple Configurations
+
+Configure different models for different integrations:
+
+```bash
+# Configure Codex for code generation
+ollama launch codex --model codellama:7b
+
+# Configure Claude for general assistance
+ollama launch claude --model llama3.2
+
+# Configure Droid for mobile development
+ollama launch droid --model mistral:7b
+```
+
+### Desktop Integration
+
+Create desktop shortcuts:
+
+```bash
+# Linux .desktop file
+[Desktop Entry]
+Name=Ollama Claude
+Exec=ollama launch claude
+Icon=ollama
+Type=Application
+```
+
+## Integration Architecture
+
+The `launch` command:
+
+1. **Checks server**: Ensures Ollama server is running
+2. **Validates integration**: Confirms integration exists and is installed
+3. **Loads config**: Reads `~/.ollama/config.json`
+4. **Handles model selection**: Prompts if needed or uses specified model
+5. **Saves configuration**: Updates config file with selections
+6. **Launches application**: Starts the integration with appropriate settings
+
+## Related Commands
+
+- [`ollama run`](/cli/run) - Run a model directly
+- [`ollama serve`](/cli/serve) - Start the Ollama server
+- [`ollama list`](/cli/list) - See available models for integration configuration

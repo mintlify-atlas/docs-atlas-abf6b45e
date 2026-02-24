@@ -1,0 +1,489 @@
+---
+title: Environment Variables
+description: Configure Ollama server behavior with environment variables
+---
+
+Ollama's behavior can be customized using environment variables. Set these before starting the Ollama server.
+
+## Setting Environment Variables
+
+<CodeGroup>
+```bash Linux
+# Set for current session
+export OLLAMA_HOST=0.0.0.0:11434
+
+# Set permanently (add to ~/.bashrc or ~/.zshrc)
+echo 'export OLLAMA_HOST=0.0.0.0:11434' >> ~/.bashrc
+
+# Set for systemd service
+sudo systemctl edit ollama
+# Add:
+[Service]
+Environment="OLLAMA_HOST=0.0.0.0:11434"
+```
+
+```bash macOS
+# Set using launchctl
+launchctl setenv OLLAMA_HOST 0.0.0.0:11434
+
+# Set permanently (requires restart)
+echo 'export OLLAMA_HOST=0.0.0.0:11434' >> ~/.zshrc
+```
+
+```powershell Windows
+# Set for current session
+$env:OLLAMA_HOST = "0.0.0.0:11434"
+
+# Set permanently
+[Environment]::SetEnvironmentVariable("OLLAMA_HOST", "0.0.0.0:11434", "User")
+```
+</CodeGroup>
+
+<Note>
+  Restart the Ollama server after changing environment variables for the changes to take effect.
+</Note>
+
+## Server Configuration
+
+### OLLAMA_HOST
+
+The IP address and port the Ollama server listens on.
+
+<ParamField path="OLLAMA_HOST" type="string" default="127.0.0.1:11434">
+  Server bind address and port.
+</ParamField>
+
+```bash
+# Listen on all interfaces
+export OLLAMA_HOST=0.0.0.0:11434
+
+# Custom port
+export OLLAMA_HOST=127.0.0.1:8080
+
+# HTTPS with custom port
+export OLLAMA_HOST=https://localhost:443
+```
+
+### OLLAMA_ORIGINS
+
+Comma-separated list of allowed origins for CORS.
+
+<ParamField path="OLLAMA_ORIGINS" type="string" default="localhost,127.0.0.1,0.0.0.0">
+  Allowed CORS origins.
+</ParamField>
+
+```bash
+export OLLAMA_ORIGINS="http://localhost:3000,https://myapp.com"
+```
+
+### OLLAMA_MODELS
+
+Directory where models are stored.
+
+<ParamField path="OLLAMA_MODELS" type="string" default="~/.ollama/models">
+  Path to models directory.
+</ParamField>
+
+```bash
+export OLLAMA_MODELS=/mnt/storage/ollama-models
+```
+
+### OLLAMA_KEEP_ALIVE
+
+Duration models stay loaded in memory after the last request.
+
+<ParamField path="OLLAMA_KEEP_ALIVE" type="string" default="5m">
+  Keep-alive duration (e.g., "5m", "1h", "300s"). Use "0" to unload immediately or "-1" for infinite.
+</ParamField>
+
+```bash
+# Keep loaded for 10 minutes
+export OLLAMA_KEEP_ALIVE=10m
+
+# Unload immediately after use
+export OLLAMA_KEEP_ALIVE=0
+
+# Keep loaded indefinitely
+export OLLAMA_KEEP_ALIVE=-1
+```
+
+### OLLAMA_NUM_PARALLEL
+
+Maximum number of parallel requests processed simultaneously.
+
+<ParamField path="OLLAMA_NUM_PARALLEL" type="integer" default="1">
+  Number of parallel requests.
+</ParamField>
+
+```bash
+# Process up to 4 requests in parallel
+export OLLAMA_NUM_PARALLEL=4
+```
+
+### OLLAMA_MAX_LOADED_MODELS
+
+Maximum number of models loaded in memory simultaneously.
+
+<ParamField path="OLLAMA_MAX_LOADED_MODELS" type="integer" default="0">
+  Maximum loaded models per GPU (0 = unlimited).
+</ParamField>
+
+```bash
+# Keep at most 3 models loaded
+export OLLAMA_MAX_LOADED_MODELS=3
+```
+
+### OLLAMA_MAX_QUEUE
+
+Maximum number of requests queued when the server is busy.
+
+<ParamField path="OLLAMA_MAX_QUEUE" type="integer" default="512">
+  Maximum queued requests.
+</ParamField>
+
+```bash
+export OLLAMA_MAX_QUEUE=1024
+```
+
+### OLLAMA_LOAD_TIMEOUT
+
+Timeout for model loading operations.
+
+<ParamField path="OLLAMA_LOAD_TIMEOUT" type="string" default="5m">
+  Load timeout duration (e.g., "5m", "300s").
+</ParamField>
+
+```bash
+# 10-minute timeout for large models
+export OLLAMA_LOAD_TIMEOUT=10m
+```
+
+## GPU Configuration
+
+### OLLAMA_GPU_OVERHEAD
+
+Reserve a portion of VRAM per GPU to prevent memory exhaustion.
+
+<ParamField path="OLLAMA_GPU_OVERHEAD" type="integer" default="0">
+  Reserved VRAM per GPU in bytes.
+</ParamField>
+
+```bash
+# Reserve 2GB per GPU
+export OLLAMA_GPU_OVERHEAD=2147483648
+```
+
+### OLLAMA_SCHED_SPREAD
+
+Schedule model layers across all available GPUs.
+
+<ParamField path="OLLAMA_SCHED_SPREAD" type="boolean" default="false">
+  Enable multi-GPU scheduling.
+</ParamField>
+
+```bash
+export OLLAMA_SCHED_SPREAD=true
+```
+
+### CUDA_VISIBLE_DEVICES
+
+Select specific NVIDIA GPUs (comma-separated IDs or UUIDs).
+
+<ParamField path="CUDA_VISIBLE_DEVICES" type="string">
+  Visible NVIDIA GPUs (Linux/Windows only).
+</ParamField>
+
+```bash
+# Use GPUs 0 and 1
+export CUDA_VISIBLE_DEVICES=0,1
+
+# Use specific UUIDs
+export CUDA_VISIBLE_DEVICES=GPU-abc123,GPU-def456
+
+# Force CPU only
+export CUDA_VISIBLE_DEVICES=-1
+```
+
+### ROCR_VISIBLE_DEVICES
+
+Select specific AMD GPUs.
+
+<ParamField path="ROCR_VISIBLE_DEVICES" type="string">
+  Visible AMD GPUs (Linux/Windows only).
+</ParamField>
+
+```bash
+export ROCR_VISIBLE_DEVICES=0,1
+```
+
+### HSA_OVERRIDE_GFX_VERSION
+
+Override AMD GPU architecture version for unsupported GPUs.
+
+<ParamField path="HSA_OVERRIDE_GFX_VERSION" type="string">
+  Force AMD GPU to use compatible LLVM target (Linux only).
+</ParamField>
+
+```bash
+# Force RX 5400 to use gfx1030 target
+export HSA_OVERRIDE_GFX_VERSION="10.3.0"
+
+# Different versions for multiple GPUs
+export HSA_OVERRIDE_GFX_VERSION_0=10.3.0
+export HSA_OVERRIDE_GFX_VERSION_1=11.0.0
+```
+
+### GGML_VK_VISIBLE_DEVICES
+
+Select specific Vulkan GPUs.
+
+<ParamField path="GGML_VK_VISIBLE_DEVICES" type="string">
+  Visible Vulkan GPUs (requires OLLAMA_VULKAN=1).
+</ParamField>
+
+```bash
+export GGML_VK_VISIBLE_DEVICES=0,1
+
+# Disable Vulkan
+export GGML_VK_VISIBLE_DEVICES=-1
+```
+
+### OLLAMA_VULKAN
+
+Enable experimental Vulkan GPU support.
+
+<ParamField path="OLLAMA_VULKAN" type="boolean" default="false">
+  Enable Vulkan backend (Linux/Windows only).
+</ParamField>
+
+```bash
+export OLLAMA_VULKAN=1
+```
+
+## Model Behavior
+
+### OLLAMA_CONTEXT_LENGTH
+
+Default context length for models.
+
+<ParamField path="OLLAMA_CONTEXT_LENGTH" type="integer" default="auto">
+  Context length (default: 4k/32k/256k based on VRAM).
+</ParamField>
+
+```bash
+# Set 8k context window
+export OLLAMA_CONTEXT_LENGTH=8192
+```
+
+### OLLAMA_FLASH_ATTENTION
+
+Enable flash attention optimization.
+
+<ParamField path="OLLAMA_FLASH_ATTENTION" type="boolean" default="false">
+  Enable flash attention (experimental).
+</ParamField>
+
+```bash
+export OLLAMA_FLASH_ATTENTION=1
+```
+
+### OLLAMA_KV_CACHE_TYPE
+
+Quantization type for the key-value cache.
+
+<ParamField path="OLLAMA_KV_CACHE_TYPE" type="string" default="f16">
+  KV cache quantization (e.g., "f16", "q8_0", "q4_0").
+</ParamField>
+
+```bash
+# Use 8-bit quantization for KV cache
+export OLLAMA_KV_CACHE_TYPE=q8_0
+```
+
+### OLLAMA_MULTIUSER_CACHE
+
+Optimize prompt caching for multi-user scenarios.
+
+<ParamField path="OLLAMA_MULTIUSER_CACHE" type="boolean" default="false">
+  Enable multi-user prompt cache optimization.
+</ParamField>
+
+```bash
+export OLLAMA_MULTIUSER_CACHE=1
+```
+
+## Advanced Configuration
+
+### OLLAMA_DEBUG
+
+Enable debug logging.
+
+<ParamField path="OLLAMA_DEBUG" type="boolean" default="false">
+  Enable debug output.
+</ParamField>
+
+```bash
+# Enable debug logging
+export OLLAMA_DEBUG=1
+
+# Enable trace logging (more verbose)
+export OLLAMA_DEBUG=2
+```
+
+### OLLAMA_LLM_LIBRARY
+
+Override LLM library path (bypasses auto-detection).
+
+<ParamField path="OLLAMA_LLM_LIBRARY" type="string">
+  Path to custom LLM library.
+</ParamField>
+
+```bash
+export OLLAMA_LLM_LIBRARY=/path/to/custom/llm/library.so
+```
+
+### OLLAMA_NOPRUNE
+
+Disable automatic pruning of unused model blobs on startup.
+
+<ParamField path="OLLAMA_NOPRUNE" type="boolean" default="false">
+  Disable model blob pruning.
+</ParamField>
+
+```bash
+export OLLAMA_NOPRUNE=1
+```
+
+### OLLAMA_NOHISTORY
+
+Disable readline history in the CLI.
+
+<ParamField path="OLLAMA_NOHISTORY" type="boolean" default="false">
+  Disable command history.
+</ParamField>
+
+```bash
+export OLLAMA_NOHISTORY=1
+```
+
+### OLLAMA_EDITOR
+
+Set the editor for interactive prompt editing (Ctrl+G in CLI).
+
+<ParamField path="OLLAMA_EDITOR" type="string">
+  Path to editor executable.
+</ParamField>
+
+```bash
+export OLLAMA_EDITOR=vim
+```
+
+### OLLAMA_REMOTES
+
+Allowed hosts for remote model pulling.
+
+<ParamField path="OLLAMA_REMOTES" type="string" default="ollama.com">
+  Comma-separated list of allowed remote hosts.
+</ParamField>
+
+```bash
+export OLLAMA_REMOTES="ollama.com,myserver.com"
+```
+
+### OLLAMA_NO_CLOUD
+
+Disable Ollama cloud features (remote inference and web search).
+
+<ParamField path="OLLAMA_NO_CLOUD" type="boolean" default="false">
+  Disable cloud features.
+</ParamField>
+
+```bash
+export OLLAMA_NO_CLOUD=1
+```
+
+### OLLAMA_NEW_ENGINE
+
+Enable the new experimental Ollama engine.
+
+<ParamField path="OLLAMA_NEW_ENGINE" type="boolean" default="false">
+  Enable new engine (experimental).
+</ParamField>
+
+```bash
+export OLLAMA_NEW_ENGINE=1
+```
+
+## Proxy Configuration
+
+### HTTP_PROXY / HTTPS_PROXY
+
+Configure HTTP/HTTPS proxy for model downloads.
+
+```bash
+export HTTP_PROXY=http://proxy.company.com:8080
+export HTTPS_PROXY=https://proxy.company.com:8443
+```
+
+### NO_PROXY
+
+Hosts to exclude from proxy.
+
+```bash
+export NO_PROXY=localhost,127.0.0.1,.internal.com
+```
+
+## Examples
+
+### Production Server Configuration
+
+```bash
+# Production server with GPU optimization
+export OLLAMA_HOST=0.0.0.0:11434
+export OLLAMA_ORIGINS="https://myapp.com"
+export OLLAMA_MODELS=/data/ollama-models
+export OLLAMA_NUM_PARALLEL=8
+export OLLAMA_MAX_LOADED_MODELS=3
+export OLLAMA_KEEP_ALIVE=30m
+export OLLAMA_GPU_OVERHEAD=2147483648
+export OLLAMA_SCHED_SPREAD=true
+```
+
+### Development Configuration
+
+```bash
+# Development with debugging
+export OLLAMA_HOST=127.0.0.1:11434
+export OLLAMA_DEBUG=1
+export OLLAMA_KEEP_ALIVE=0
+export OLLAMA_NUM_PARALLEL=2
+```
+
+### Multi-GPU Setup
+
+```bash
+# Use all NVIDIA GPUs with load spreading
+export OLLAMA_SCHED_SPREAD=true
+export OLLAMA_GPU_OVERHEAD=2147483648
+export OLLAMA_NUM_PARALLEL=4
+```
+
+### CPU-Only Mode
+
+```bash
+# Force CPU-only inference
+export CUDA_VISIBLE_DEVICES=-1
+export ROCR_VISIBLE_DEVICES=-1
+export GGML_VK_VISIBLE_DEVICES=-1
+```
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="GPU Configuration" icon="microchip" href="/advanced/gpu">
+    Detailed GPU setup and troubleshooting
+  </Card>
+  <Card title="Model Quantization" icon="compress" href="/advanced/model-quantization">
+    Optimize memory usage with quantization
+  </Card>
+</CardGroup>

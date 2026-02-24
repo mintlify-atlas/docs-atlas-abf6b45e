@@ -1,0 +1,408 @@
+---
+title: Contributing
+description: Learn how to contribute to the Ollama project
+---
+
+Thank you for your interest in contributing to Ollama! This guide will help you get started with contributing to the project.
+
+## Getting Started
+
+Before you start contributing, you'll need to set up your development environment.
+
+<Card title="Development Setup" icon="code" href="/development">
+  See the development documentation for instructions on how to build and run Ollama locally
+</Card>
+
+### Prerequisites
+
+To build Ollama from source, you'll need:
+
+- [Go](https://go.dev/doc/install)
+- C/C++ Compiler:
+  - **macOS**: Clang (included with Xcode)
+  - **Windows**: [TDM-GCC](https://github.com/jmeubank/tdm-gcc/releases/latest) (amd64) or [llvm-mingw](https://github.com/mstorsjo/llvm-mingw) (arm64)
+  - **Linux**: GCC or Clang
+
+### Quick Start
+
+From the root directory of the repository:
+
+```shell
+go run . serve
+```
+
+<Note>
+  Ollama includes native code compiled with CGO. From time to time these data structures can change and CGO can get out of sync resulting in unexpected crashes. You can force a full build of the native code by running `go clean -cache` first.
+</Note>
+
+## Types of Contributions
+
+### Ideal Issues
+
+These types of contributions are most likely to be accepted:
+
+<CardGroup cols={3}>
+  <Card title="Bug Fixes" icon="bug">
+    Issues where Ollama stops working or results in an unexpected error
+  </Card>
+  <Card title="Performance" icon="gauge-high">
+    Improvements to make Ollama faster at model inference, downloading, or uploading
+  </Card>
+  <Card title="Security" icon="shield">
+    Issues that could lead to a security vulnerability (see [SECURITY.md](https://github.com/ollama/ollama/blob/main/SECURITY.md))
+  </Card>
+</CardGroup>
+
+<Warning>
+  For security vulnerabilities, **do not disclose publicly**. Please email hello@ollama.com instead.
+</Warning>
+
+Browse open issues:
+- [Bug reports](https://github.com/ollama/ollama/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
+- [Performance issues](https://github.com/ollama/ollama/issues?q=is%3Aissue+is%3Aopen+label%3Aperformance)
+
+### Harder to Review
+
+These contributions are important but may take longer to review and merge:
+
+- **New features**: New features (e.g., API fields, environment variables) add surface area to Ollama and make it harder to maintain in the long run as they cannot be removed without potentially breaking users in the future
+- **Refactoring**: Large code improvements are important, but can be harder or take longer to review and merge
+- **Documentation**: Small updates to fill in or correct missing documentation are helpful, however large documentation additions can be hard to maintain over time
+
+### May Not Be Accepted
+
+The following types of changes are unlikely to be accepted:
+
+<Warning>
+  - Changes that break backwards compatibility in Ollama's API (including the OpenAI-compatible API)
+  - Changes that add significant friction to the user experience
+  - Changes that create a large future maintenance burden for maintainers and contributors
+</Warning>
+
+## Proposing a Non-Trivial Change
+
+<Info>
+  By "non-trivial", we mean a change that is not a bug fix or small documentation update. If you are unsure, please ask us on our [Discord server](https://discord.gg/ollama).
+</Info>
+
+Before opening a non-trivial Pull Request, **please open an issue first** to discuss the change and get feedback from the maintainers.
+
+This helps us:
+- Understand the context of the change
+- Determine how it fits into Ollama's roadmap
+- Prevent duplicating work
+- Avoid spending time on changes that may not be accepted
+
+### Tips for Proposals
+
+<Steps>
+  <Step title="Explain the problem">
+    Focus on the problem you are trying to solve, not what you are trying to do.
+  </Step>
+  <Step title="Explain why it's important">
+    Help us understand the impact and value of the change.
+  </Step>
+  <Step title="Explain how it will be used">
+    Provide context on the use case and user experience.
+  </Step>
+  <Step title="Explain how it will be tested">
+    Describe your testing approach and any edge cases.
+  </Step>
+  <Step title="Provide draft documentation (bonus)">
+    Show what documentation you would expect to see if the changes were accepted.
+  </Step>
+</Steps>
+
+## Pull Requests
+
+### Commit Messages
+
+The commit message title should follow this format:
+
+```
+<package>: <short description>
+```
+
+**Guidelines:**
+- The package is the most affected Go package
+- If the change does not affect Go code, use the directory name instead
+- Changes to a single well-known file in the root directory may use the file name
+- The short description should start with a lowercase letter
+- Think of it as completing the sentence: "This changes Ollama to..."
+
+<CodeGroup>
+```text Good Examples
+llm/backend/mlx: support the llama architecture
+CONTRIBUTING: provide clarity on good commit messages, and bad
+```
+
+```text Bad Examples
+feat: add more emoji
+fix: was not using famous web framework
+chore: generify code
+```
+</CodeGroup>
+
+### Tests
+
+Please include tests with your pull request. Strive to test **behavior, not implementation**.
+
+Run tests with:
+
+```shell
+go test ./...
+```
+
+<Accordion title="Using synctest (Go 1.24+)">
+  In rare circumstances, you may need to use the new "synctest" package in Go 1.24.
+
+  If you see failures in CI but not locally, you may need to enable synctest:
+
+  ```shell
+  GOEXPERIMENT=synctest go test ./...
+  ```
+
+  To enable synctest for all Go commands:
+
+  ```shell
+  go env -w GOEXPERIMENT=synctest
+  ```
+
+  <Note>
+    The synctest package is not required for production builds.
+  </Note>
+</Accordion>
+
+### New Dependencies
+
+Dependencies should be added **sparingly**.
+
+If you are adding a new dependency, please:
+- Explain why it is necessary
+- Describe what other approaches you attempted that did not work without it
+
+## Development Workflow
+
+<Steps>
+  <Step title="Fork and clone">
+    Fork the repository on GitHub and clone it locally:
+
+    ```shell
+    git clone https://github.com/YOUR_USERNAME/ollama.git
+    cd ollama
+    ```
+  </Step>
+  <Step title="Create a branch">
+    Create a new branch for your work:
+
+    ```shell
+    git checkout -b my-feature-branch
+    ```
+  </Step>
+  <Step title="Make changes">
+    Make your changes and test them thoroughly:
+
+    ```shell
+    go run . serve
+    go test ./...
+    ```
+  </Step>
+  <Step title="Commit changes">
+    Commit your changes with a clear commit message:
+
+    ```shell
+    git add .
+    git commit -m "package: description of changes"
+    ```
+  </Step>
+  <Step title="Push and create PR">
+    Push your branch and create a pull request:
+
+    ```shell
+    git push origin my-feature-branch
+    ```
+
+    Then open a pull request on GitHub.
+  </Step>
+</Steps>
+
+## Platform-Specific Development
+
+<Tabs>
+  <Tab title="macOS">
+    ### macOS (Apple Silicon)
+
+    macOS Apple Silicon supports Metal which is built-in to the Ollama binary. No additional steps are required.
+
+    ```shell
+    go run . serve
+    ```
+
+    ### macOS (Intel)
+
+    Install CMake:
+
+    ```shell
+    brew install cmake
+    ```
+
+    Configure and build:
+
+    ```shell
+    cmake -B build
+    cmake --build build
+    go run . serve
+    ```
+  </Tab>
+  <Tab title="Windows">
+    ### Prerequisites
+
+    - [CMake](https://cmake.org/download/)
+    - [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) including the Native Desktop Workload
+    - (Optional) [CUDA SDK](https://developer.nvidia.com/cuda-downloads) for NVIDIA GPU support
+    - (Optional) [ROCm](https://rocm.docs.amd.com/en/latest/) for AMD GPU support
+    - (Optional) [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) for AMD/Intel GPUs
+
+    ### Build
+
+    ```shell
+    cmake -B build
+    cmake --build build --config Release
+    go run . serve
+    ```
+
+    <Accordion title="Building for Vulkan">
+      Requires `VULKAN_SDK` environment variable:
+
+      **PowerShell:**
+      ```powershell
+      $env:VULKAN_SDK="C:\VulkanSDK\<version>"
+      ```
+
+      **CMD:**
+      ```cmd
+      set VULKAN_SDK=C:\VulkanSDK\<version>
+      ```
+    </Accordion>
+
+    <Accordion title="Building for ROCm">
+      Requires additional flags:
+
+      ```shell
+      cmake -B build -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+      cmake --build build --config Release
+      ```
+    </Accordion>
+
+    ### Windows (ARM)
+
+    Windows ARM does not support additional acceleration libraries. Simply use:
+
+    ```shell
+    go run . serve
+    ```
+  </Tab>
+  <Tab title="Linux">
+    ### Prerequisites
+
+    Install CMake:
+
+    ```shell
+    # Ubuntu/Debian
+    sudo apt install cmake
+
+    # Fedora/CentOS
+    sudo dnf install cmake
+    ```
+
+    Optional GPU support:
+    - **NVIDIA**: [CUDA SDK](https://developer.nvidia.com/cuda-downloads)
+    - **AMD**: [ROCm](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-start.html)
+    - **Intel/AMD**: Vulkan SDK
+
+    ```shell
+    # Ubuntu/Debian
+    sudo apt install vulkan-sdk
+
+    # Fedora/CentOS
+    sudo dnf install vulkan-sdk
+    ```
+
+    <Warning>
+      Ensure prerequisites are in `PATH` before running CMake.
+    </Warning>
+
+    ### Build
+
+    ```shell
+    cmake -B build
+    cmake --build build
+    go run . serve
+    ```
+  </Tab>
+  <Tab title="Docker">
+    ### Build Docker Image
+
+    ```shell
+    docker build .
+    ```
+
+    ### Build with ROCm
+
+    ```shell
+    docker build --build-arg FLAVOR=rocm .
+    ```
+  </Tab>
+</Tabs>
+
+## Running Tests
+
+To run tests, use `go test`:
+
+```shell
+go test ./...
+```
+
+For specific packages:
+
+```shell
+go test ./llm/...
+```
+
+With verbose output:
+
+```shell
+go test -v ./...
+```
+
+## Library Detection
+
+Ollama looks for acceleration libraries in the following paths relative to the `ollama` executable:
+
+- `./lib/ollama` (Windows)
+- `../lib/ollama` (Linux)
+- `.` (macOS)
+- `build/lib/ollama` (for development)
+
+<Note>
+  If the libraries are not found, Ollama will not run with any acceleration libraries.
+</Note>
+
+## Need Help?
+
+<CardGroup cols={2}>
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/ollama">
+    Join our Discord server for questions and discussions
+  </Card>
+  <Card title="GitHub Discussions" icon="github" href="https://github.com/ollama/ollama/discussions">
+    Browse and participate in GitHub discussions
+  </Card>
+  <Card title="Development Guide" icon="book" href="/development">
+    Read the full development documentation
+  </Card>
+  <Card title="Report Issues" icon="flag" href="https://github.com/ollama/ollama/issues">
+    Report bugs and request features
+  </Card>
+</CardGroup>
+
+If you need help with anything, feel free to reach out to us on our [Discord server](https://discord.gg/ollama).

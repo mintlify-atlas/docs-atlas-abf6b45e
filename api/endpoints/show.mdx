@@ -1,0 +1,287 @@
+---
+title: 'POST /api/show'
+description: 'Show information about a model'
+---
+
+Retrieve detailed information about a model including its Modelfile, parameters, template, system prompt, and model architecture details.
+
+## Request
+
+### Endpoint
+
+```
+POST /api/show
+```
+
+### Request Body
+
+<ParamField path="model" type="string" required>
+  Name of the model to show information for
+</ParamField>
+
+<ParamField path="verbose" type="boolean" default="false">
+  Include tensor information in the response (significantly increases response size)
+</ParamField>
+
+<ParamField path="system" type="string">
+  Override the system prompt for display purposes
+</ParamField>
+
+<ParamField path="template" type="string">
+  Deprecated: This parameter is deprecated
+</ParamField>
+
+<ParamField path="options" type="object">
+  Model options to display
+</ParamField>
+
+## Response
+
+### Response Fields
+
+<ResponseField name="modelfile" type="string">
+  Complete Modelfile that can be used to recreate the model
+</ResponseField>
+
+<ResponseField name="parameters" type="string">
+  Formatted string of model parameters (one per line)
+</ResponseField>
+
+<ResponseField name="template" type="string">
+  Prompt template used by the model
+</ResponseField>
+
+<ResponseField name="system" type="string">
+  System prompt configured for the model
+</ResponseField>
+
+<ResponseField name="details" type="object">
+  Model architecture and metadata
+  
+  <Expandable title="Details Object">
+    <ResponseField name="parent_model" type="string">
+      Base model this was derived from
+    </ResponseField>
+    
+    <ResponseField name="format" type="string">
+      Model format (e.g., "gguf", "safetensors")
+    </ResponseField>
+    
+    <ResponseField name="family" type="string">
+      Model architecture family
+    </ResponseField>
+    
+    <ResponseField name="families" type="array">
+      Array of architecture families
+    </ResponseField>
+    
+    <ResponseField name="parameter_size" type="string">
+      Human-readable parameter count (e.g., "7B")
+    </ResponseField>
+    
+    <ResponseField name="quantization_level" type="string">
+      Quantization format (e.g., "Q4_K_M")
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="model_info" type="object">
+  Low-level model metadata from GGUF/config (key-value pairs)
+</ResponseField>
+
+<ResponseField name="projector_info" type="object">
+  Vision projector metadata (for multimodal models)
+</ResponseField>
+
+<ResponseField name="messages" type="array">
+  Pre-configured messages embedded in the model
+</ResponseField>
+
+<ResponseField name="license" type="string">
+  License information for the model
+</ResponseField>
+
+<ResponseField name="capabilities" type="array">
+  Array of capabilities (e.g., ["completion", "vision", "tools"])
+</ResponseField>
+
+<ResponseField name="modified_at" type="string">
+  Timestamp of last modification (ISO 8601)
+</ResponseField>
+
+<ResponseField name="remote_model" type="string">
+  Upstream model name (for remote models)
+</ResponseField>
+
+<ResponseField name="remote_host" type="string">
+  Upstream Ollama host URL (for remote models)
+</ResponseField>
+
+<ResponseField name="renderer" type="string">
+  Template renderer used by the model
+</ResponseField>
+
+<ResponseField name="parser" type="string">
+  Output parser used by the model
+</ResponseField>
+
+<ResponseField name="requires" type="string">
+  Minimum Ollama version required
+</ResponseField>
+
+<ResponseField name="tensors" type="array">
+  Tensor information (only when `verbose: true`)
+  
+  <Expandable title="Tensor Object">
+    <ResponseField name="name" type="string">
+      Tensor name
+    </ResponseField>
+    
+    <ResponseField name="type" type="string">
+      Data type (e.g., "F16", "Q4_K")
+    </ResponseField>
+    
+    <ResponseField name="shape" type="array">
+      Tensor dimensions
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Examples
+
+### Basic Model Information
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:11434/api/show -d '{
+  "model": "llama3.2"
+}'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:11434/api/show',
+    json={'model': 'llama3.2'}
+)
+
+info = response.json()
+print(f"Family: {info['details']['family']}")
+print(f"Parameters: {info['details']['parameter_size']}")
+print(f"Format: {info['details']['format']}")
+print(f"\nCapabilities: {', '.join(info['capabilities'])}")
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:11434/api/show', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ model: 'llama3.2' })
+});
+
+const info = await response.json();
+console.log(`Family: ${info.details.family}`);
+console.log(`Parameters: ${info.details.parameter_size}`);
+console.log(`Format: ${info.details.format}`);
+console.log(`\nCapabilities: ${info.capabilities.join(', ')}`);
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "modelfile": "# Modelfile generated by \"ollama show\"\n# To build a new Modelfile based on this, replace FROM with:\n# FROM llama3.2\n\nFROM /path/to/model\nTEMPLATE \"\"\"{{ if .System }}<|start_header_id|>system<|end_header_id|>\n\n{{ .System }}<|eot_id|>{{ end }}{{ if .Prompt }}<|start_header_id|>user<|end_header_id|>\n\n{{ .Prompt }}<|eot_id|>{{ end }}<|start_header_id|>assistant<|end_header_id|>\n\n{{ .Response }}<|eot_id|>\"\"\"\nPARAMETER stop <|start_header_id|>\nPARAMETER stop <|end_header_id|>\nPARAMETER stop <|eot_id|>\n",
+  "parameters": "stop                          <|start_header_id|>\nstop                          <|end_header_id|>\nstop                          <|eot_id|>",
+  "template": "{{ if .System }}<|start_header_id|>system<|end_header_id|>\n\n{{ .System }}<|eot_id|>{{ end }}{{ if .Prompt }}<|start_header_id|>user<|end_header_id|>\n\n{{ .Prompt }}<|eot_id|>{{ end }}<|start_header_id|>assistant<|end_header_id|>\n\n{{ .Response }}<|eot_id|>",
+  "details": {
+    "parent_model": "",
+    "format": "gguf",
+    "family": "llama",
+    "families": ["llama"],
+    "parameter_size": "3B",
+    "quantization_level": "Q4_K_M"
+  },
+  "capabilities": ["completion"],
+  "model_info": {
+    "general.architecture": "llama",
+    "general.file_type": "Q4_K_M",
+    "general.parameter_count": 3213052928,
+    "llama.attention.head_count": 32,
+    "llama.attention.head_count_kv": 8,
+    "llama.block_count": 28,
+    "llama.context_length": 131072,
+    "llama.embedding_length": 3072
+  },
+  "modified_at": "2024-02-24T12:34:56.789Z"
+}
+```
+
+### Verbose Mode (Including Tensors)
+
+```bash
+curl http://localhost:11434/api/show -d '{
+  "model": "llama3.2",
+  "verbose": true
+}'
+```
+
+### Extract Specific Information (Python)
+
+```python
+import requests
+
+def get_model_context_length(model_name):
+    response = requests.post(
+        'http://localhost:11434/api/show',
+        json={'model': model_name}
+    )
+    info = response.json()
+    
+    # Try to extract context length from model_info
+    model_info = info.get('model_info', {})
+    family = info['details']['family']
+    
+    context_key = f"{family}.context_length"
+    return model_info.get(context_key, 'Unknown')
+
+context = get_model_context_length('llama3.2')
+print(f"Context length: {context}")
+```
+
+### Display Modelfile (JavaScript)
+
+```javascript
+const response = await fetch('http://localhost:11434/api/show', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ model: 'llama3.2' })
+});
+
+const info = await response.json();
+console.log('=== Modelfile ===');
+console.log(info.modelfile);
+```
+
+## Error Responses
+
+<ResponseField name="error" type="string">
+  Description of the error
+</ResponseField>
+
+### Common Errors
+
+- **400 Bad Request**: Invalid model name or request format
+- **404 Not Found**: Model not found
+- **500 Internal Server Error**: Error reading model information
+
+<Note>
+The `modelfile` field contains a complete, regenerated Modelfile that can be used with `ollama create` to recreate the model.
+</Note>
+
+<Note>
+Setting `verbose: true` will include detailed tensor information, which can make the response very large (hundreds of MB for large models).
+</Note>

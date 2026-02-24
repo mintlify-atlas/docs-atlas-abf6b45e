@@ -1,0 +1,357 @@
+---
+title: Model Quantization
+description: Reduce model size and memory usage with quantization techniques
+---
+
+Quantization reduces model precision to decrease memory usage and increase inference speed, with a trade-off in accuracy. This allows running larger models on consumer hardware.
+
+## What is Quantization?
+
+Quantization converts high-precision model weights (FP32 or FP16) to lower-precision formats (4-bit, 8-bit). This process:
+
+<CardGroup cols={2}>
+  <Card title="Reduces Memory" icon="memory">
+    Models use 4-8x less VRAM and storage
+  </Card>
+  <Card title="Increases Speed" icon="gauge-high">
+    Faster inference on consumer GPUs
+  </Card>
+  <Card title="Enables Larger Models" icon="expand">
+    Run models that wouldn't fit in VRAM
+  </Card>
+  <Card title="Trade-off Quality" icon="scale-balanced">
+    Slight accuracy loss for major size reduction
+  </Card>
+</CardGroup>
+
+## Quantizing Models with Ollama
+
+Quantize FP16 or FP32 models during import using the `--quantize` flag.
+
+<Steps>
+  <Step title="Prepare an FP16/FP32 model">
+    Create a Modelfile pointing to your high-precision model:
+
+    ```dockerfile
+    FROM /path/to/my/model/fp16
+    ```
+  </Step>
+
+  <Step title="Create with quantization">
+    Use `ollama create` with the `--quantize` or `-q` flag:
+
+    ```bash
+    ollama create --quantize q4_K_M mymodel
+    ```
+
+    The output shows quantization progress:
+
+    ```
+    transferring model data
+    quantizing F16 model to Q4_K_M
+    creating new layer sha256:735e246cc1ab...
+    creating new layer sha256:0853f0ad24e5...
+    writing manifest
+    success
+    ```
+  </Step>
+
+  <Step title="Test the quantized model">
+    ```bash
+    ollama run mymodel
+    ```
+  </Step>
+</Steps>
+
+## Supported Quantization Levels
+
+Ollama supports several quantization formats with different size/quality trade-offs.
+
+### 4-bit Quantization (K-means)
+
+<Accordion title="Q4_K_M - Medium (Recommended)" defaultOpen>
+  **Best balance of size and quality**
+
+  - **Size reduction**: ~4x smaller than FP16
+  - **Quality**: Good - minimal perceptible accuracy loss
+  - **Speed**: Fast inference
+  - **Use case**: Default choice for most models
+
+  ```bash
+  ollama create --quantize q4_K_M mymodel
+  ```
+</Accordion>
+
+<Accordion title="Q4_K_S - Small">
+  **Maximum compression**
+
+  - **Size reduction**: ~4.5x smaller than FP16
+  - **Quality**: Acceptable - some quality loss
+  - **Speed**: Very fast inference
+  - **Use case**: When storage/memory is critical
+
+  ```bash
+  ollama create --quantize q4_K_S mymodel
+  ```
+</Accordion>
+
+### 8-bit Quantization
+
+<Accordion title="Q8_0 - High Quality">
+  **Highest quality quantization**
+
+  - **Size reduction**: ~2x smaller than FP16
+  - **Quality**: Excellent - virtually no quality loss
+  - **Speed**: Moderate speedup
+  - **Use case**: When quality is paramount
+
+  ```bash
+  ollama create --quantize q8_0 mymodel
+  ```
+</Accordion>
+
+## Comparison Table
+
+<Info>
+  Example: A 7B parameter model in FP16 format (~14GB) after quantization:
+</Info>
+
+| Quantization | Approx. Size | Quality | Speed | Best For |
+|--------------|--------------|---------|-------|----------|
+| **FP16** (Original) | ~14 GB | 100% | Baseline | Maximum accuracy |
+| **Q8_0** | ~7 GB | 99% | 1.2-1.5x | High quality, moderate savings |
+| **Q4_K_M** | ~3.5 GB | 95-97% | 1.5-2x | **Recommended default** |
+| **Q4_K_S** | ~3 GB | 93-95% | 2-2.5x | Maximum compression |
+
+<Note>
+  Actual sizes and quality depend on model architecture. Perplexity increases (quality decreases) by 1-5% for Q4_K_M compared to FP16.
+</Note>
+
+## Choosing a Quantization Level
+
+Select based on your priorities:
+
+<Tabs>
+  <Tab title="Quality Priority">
+    **Use Q8_0** when:
+    - Accuracy is critical
+    - You have sufficient VRAM
+    - Minimal quality loss is required
+
+    ```bash
+    ollama create --quantize q8_0 mymodel
+    ```
+  </Tab>
+
+  <Tab title="Balanced">
+    **Use Q4_K_M** when:
+    - You want the best balance
+    - Storage/VRAM is limited
+    - Slight quality loss is acceptable
+
+    ```bash
+    ollama create --quantize q4_K_M mymodel
+    ```
+
+    **This is the recommended default for most use cases.**
+  </Tab>
+
+  <Tab title="Size Priority">
+    **Use Q4_K_S** when:
+    - VRAM/storage is severely limited
+    - Running on consumer hardware
+    - Maximum model size is needed
+
+    ```bash
+    ollama create --quantize q4_K_S mymodel
+    ```
+  </Tab>
+</Tabs>
+
+## Technical Details
+
+### K-means Quantization
+
+The "K" in Q4_K and Q8_K refers to **K-means quantization**, which groups similar weights and quantizes them together. This provides better quality than naive quantization.
+
+- **Q4_K_M**: Uses K-means with medium-sized quantization blocks
+- **Q4_K_S**: Uses smaller quantization blocks for more compression
+
+### Supported Input Formats
+
+Ollama can quantize models from:
+
+<CardGroup cols={2}>
+  <Card title="FP16 Models" icon="1">
+    Half-precision floating-point (most common)
+  </Card>
+  <Card title="FP32 Models" icon="2">
+    Full-precision floating-point
+  </Card>
+</CardGroup>
+
+<Warning>
+  **Cannot quantize already-quantized models.** You must start with FP16 or FP32 weights.
+</Warning>
+
+## Examples
+
+### Quantize a Hugging Face Model
+
+```bash
+# Download FP16 model from Hugging Face
+huggingface-cli download username/model-name --local-dir ./model
+
+# Create Modelfile
+echo "FROM ./model" > Modelfile
+
+# Quantize to Q4_K_M
+ollama create --quantize q4_K_M my-quantized-model
+
+# Test
+ollama run my-quantized-model
+```
+
+### Quantize a Safetensors Model
+
+```bash
+# Create Modelfile pointing to Safetensors directory
+echo "FROM ./safetensors-model" > Modelfile
+
+# Quantize with Q8_0 for high quality
+ollama create --quantize q8_0 high-quality-model
+```
+
+### Batch Quantize Multiple Levels
+
+```bash
+# Create different quantization levels for comparison
+ollama create --quantize q8_0 mymodel-q8
+ollama create --quantize q4_K_M mymodel-q4m
+ollama create --quantize q4_K_S mymodel-q4s
+
+# Test and compare
+ollama run mymodel-q8 "Explain quantum computing"
+ollama run mymodel-q4m "Explain quantum computing"
+ollama run mymodel-q4s "Explain quantum computing"
+```
+
+## Using Pre-Quantized Models
+
+Many models on [ollama.com](https://ollama.com/library) are available in multiple quantization levels:
+
+```bash
+# Full precision (if available)
+ollama pull llama3.2:70b-fp16
+
+# 4-bit quantized (default)
+ollama pull llama3.2:70b
+
+# Different quantization levels
+ollama pull llama3.2:70b-q8_0
+ollama pull llama3.2:70b-q4_K_M
+```
+
+<Tip>
+  When no quantization is specified, most Ollama models default to Q4_K_M.
+</Tip>
+
+## KV Cache Quantization
+
+The key-value cache can also be quantized to save memory during inference:
+
+```bash
+# Use 8-bit quantization for KV cache
+export OLLAMA_KV_CACHE_TYPE=q8_0
+
+# Use 4-bit quantization (more aggressive)
+export OLLAMA_KV_CACHE_TYPE=q4_0
+```
+
+See [Environment Variables](/advanced/environment-variables) for more details.
+
+## Performance Tips
+
+<AccordionGroup>
+  <Accordion title="VRAM is limited">
+    Use **Q4_K_S** or **Q4_K_M** to fit larger models in limited VRAM:
+
+    ```bash
+    ollama create --quantize q4_K_S mymodel
+    ```
+  </Accordion>
+
+  <Accordion title="Quality is critical">
+    Use **Q8_0** for minimal quality loss:
+
+    ```bash
+    ollama create --quantize q8_0 mymodel
+    ```
+  </Accordion>
+
+  <Accordion title="Running on CPU">
+    Quantization still helps on CPU by reducing memory bandwidth:
+
+    ```bash
+    ollama create --quantize q4_K_M mymodel
+    ```
+  </Accordion>
+
+  <Accordion title="Multiple GPUs">
+    Smaller quantized models may fit on a single GPU instead of splitting across multiple GPUs, improving performance:
+
+    ```bash
+    ollama create --quantize q4_K_M mymodel
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Measuring Quality Loss
+
+Evaluate quantization quality with benchmarks:
+
+```bash
+# Compare outputs from different quantization levels
+for model in mymodel-fp16 mymodel-q8 mymodel-q4m; do
+  echo "Testing $model:"
+  ollama run $model "Solve: 2x + 5 = 15"
+  echo "---"
+done
+```
+
+<Info>
+  For most conversational and coding tasks, Q4_K_M provides excellent results indistinguishable from FP16.
+</Info>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Error: Model is already quantized">
+    You cannot quantize an already-quantized model. Download or convert the model to FP16/FP32 first.
+  </Accordion>
+
+  <Accordion title="Quantization takes a long time">
+    Quantization is CPU-intensive and scales with model size. Large 70B+ models may take 10-30 minutes.
+  </Accordion>
+
+  <Accordion title="Quality loss is too high">
+    Try a higher quantization level:
+    - Switch from Q4_K_S to Q4_K_M
+    - Switch from Q4_K_M to Q8_0
+    - Use the original FP16 model if VRAM allows
+  </Accordion>
+</AccordionGroup>
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Importing Models" icon="file-import" href="/advanced/import">
+    Import and quantize models from various formats
+  </Card>
+  <Card title="GPU Configuration" icon="microchip" href="/advanced/gpu">
+    Optimize GPU memory usage
+  </Card>
+  <Card title="Environment Variables" icon="gear" href="/advanced/environment-variables">
+    Configure KV cache quantization and more
+  </Card>
+</CardGroup>

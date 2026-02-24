@@ -1,0 +1,382 @@
+---
+title: Models
+---
+
+Ollama provides access to a wide variety of open-source language models that can be run locally on your machine. Models are the core building blocks that power AI applications.
+
+## Model Library
+
+Ollama hosts an extensive library of pre-trained models that are optimized for local execution. Browse the complete collection at [ollama.com/library](https://ollama.com/library).
+
+Popular models include:
+
+- **Llama** - Meta's family of models (Llama 2, Llama 3, Llama 3.1, Llama 3.2, Llama 4)
+- **Gemma** - Google's efficient language models (Gemma 1, Gemma 2, Gemma 3)
+- **Qwen** - Alibaba's Qwen family (Qwen 2, Qwen 3, Qwen 2.5-VL, Qwen 3-VL)
+- **Mistral** - Mistral AI's models (Mistral 1, Mistral 2, Mistral 3, Mixtral)
+- **DeepSeek** - DeepSeek's reasoning models (DeepSeek v3.1, DeepSeek R1)
+- **Phi** - Microsoft's small language models
+- **CodeLlama** - Specialized for code generation
+
+## Model Naming Convention
+
+Ollama uses a structured naming format to identify models:
+
+```
+[host/][namespace/]model[:tag]
+```
+
+### Components
+
+<ParamField path="host" type="string" default="registry.ollama.ai">
+  The registry host where the model is stored. Typically omitted for official models.
+</ParamField>
+
+<ParamField path="namespace" type="string" default="library">
+  The organization or user that published the model. Official models use `library`.
+</ParamField>
+
+<ParamField path="model" type="string" required>
+  The model name (e.g., `llama3`, `gemma3`, `qwen3`).
+</ParamField>
+
+<ParamField path="tag" type="string" default="latest">
+  The model variant, typically indicating size or quantization (e.g., `7b`, `13b`, `70b`).
+</ParamField>
+
+### Examples
+
+<CodeGroup>
+```bash Full Format
+registry.ollama.ai/library/llama3:8b
+```
+
+```bash Short Format (Recommended)
+llama3:8b
+```
+
+```bash With Namespace
+user/custom-model:latest
+```
+
+```bash Default Tag
+gemma3
+# Equivalent to: gemma3:latest
+```
+</CodeGroup>
+
+## Discovering Models
+
+### Using the CLI
+
+List all locally available models:
+
+```bash
+ollama list
+```
+
+Search for models in the library:
+
+```bash
+ollama search llama
+```
+
+Pull a model from the library:
+
+```bash
+ollama pull llama3:8b
+```
+
+### Using the API
+
+List loaded models:
+
+```bash
+curl http://localhost:11434/api/tags
+```
+
+Get details about a specific model:
+
+```bash
+curl http://localhost:11434/api/show -d '{
+  "model": "llama3:8b"
+}'
+```
+
+## Model Architecture Support
+
+Ollama supports multiple model architectures through specialized backends:
+
+<Tabs>
+  <Tab title="Text Models">
+    - **Llama** - Including Llama 2, 3, 3.1, 3.2, and 4
+    - **Mistral** - Including Mistral 1, 2, 3, and Mixtral
+    - **Gemma** - Including Gemma 1, 2, and 3
+    - **Qwen** - Including Qwen 2, 3, and variants
+    - **Phi** - Microsoft's Phi models
+    - **DeepSeek** - DeepSeek v3.1 and R1
+    - **OLMo** - Open Language Model
+  </Tab>
+  
+  <Tab title="Vision Models">
+    - **Llama 3.2-Vision** - Multimodal understanding
+    - **Llama 4-Vision** - Advanced vision capabilities
+    - **Qwen 2.5-VL** - Vision-language model
+    - **Qwen 3-VL** - Enhanced vision-language
+    - **Mistral 3-Vision** - Pixtral integration
+    - **Gemma 3-Vision** - Image understanding
+  </Tab>
+  
+  <Tab title="Embedding Models">
+    - **nomic-embed-text** - Text embeddings
+    - **all-minilm** - Efficient embeddings
+    - **qwen3-embedding** - Qwen embeddings
+    - **embeddinggemma** - Gemma embeddings
+  </Tab>
+  
+  <Tab title="Specialized Models">
+    - **Code models** - CodeLlama, Codestral
+    - **Reasoning models** - DeepSeek R1, GPT-OSS
+    - **Vision OCR** - DeepSeek-OCR, GLM-OCR
+  </Tab>
+</Tabs>
+
+## Model Format
+
+Ollama uses the GGUF (GPT-Generated Unified Format) file format for storing model weights. GGUF is an efficient format designed for inference:
+
+- **Quantization support** - Models can be quantized to reduce memory usage
+- **Fast loading** - Optimized for quick model loading
+- **Metadata** - Includes model configuration and tokenizer data
+- **Cross-platform** - Works across different operating systems
+
+## Model Size and Quantization
+
+Models are available in different sizes and quantization levels:
+
+<Note>
+  Quantization reduces model precision to decrease memory usage and improve speed, with minimal impact on quality.
+</Note>
+
+### Common Sizes
+
+- **7B** - 7 billion parameters (~4-8 GB RAM)
+- **13B** - 13 billion parameters (~8-16 GB RAM)
+- **70B** - 70 billion parameters (~40-80 GB RAM)
+
+### Quantization Levels
+
+- **Q4_0, Q4_1** - 4-bit quantization (smallest, fastest)
+- **Q5_0, Q5_1** - 5-bit quantization (balanced)
+- **Q8_0** - 8-bit quantization (larger, higher quality)
+- **F16** - 16-bit floating point (highest quality)
+
+## Creating Custom Models
+
+You can create custom models from:
+
+<CardGroup cols={3}>
+  <Card title="Existing Models" icon="clone">
+    Build on top of base models with custom configurations
+  </Card>
+  
+  <Card title="Safetensors" icon="file-export">
+    Import models from Hugging Face and other sources
+  </Card>
+  
+  <Card title="GGUF Files" icon="file-binary">
+    Use pre-quantized GGUF model files
+  </Card>
+</CardGroup>
+
+```bash
+ ollama create mymodel -f ./Modelfile
+```
+
+See the [Modelfile documentation](/modelfile) for details on creating custom models.
+
+## Model Discovery
+
+Models are discovered from multiple sources:
+
+1. **Local models** - Stored in `~/.ollama/models`
+2. **Official library** - Models from [ollama.com/library](https://ollama.com/library)
+3. **Custom registries** - Self-hosted model registries
+4. **Cloud models** - Remote models accessed via API
+
+### Model Storage Location
+
+By default, models are stored in:
+
+<Tabs>
+  <Tab title="macOS">
+    ```
+    ~/.ollama/models
+    ```
+  </Tab>
+  
+  <Tab title="Linux">
+    ```
+    /usr/share/ollama/.ollama/models
+    ```
+  </Tab>
+  
+  <Tab title="Windows">
+    ```
+    C:\Users\<username>\.ollama\models
+    ```
+  </Tab>
+</Tabs>
+
+## Model Details
+
+View detailed information about a model:
+
+```bash
+ollama show llama3:8b
+```
+
+This displays:
+
+- Model architecture and family
+- Parameter count and quantization level
+- Template and system prompt
+- Model parameters (temperature, context length, etc.)
+- License information
+
+<CodeGroup>
+```bash CLI
+ollama show --modelfile llama3:8b
+```
+
+```bash API
+curl http://localhost:11434/api/show -d '{
+  "model": "llama3:8b",
+  "verbose": true
+}'
+```
+</CodeGroup>
+
+## Managing Models
+
+### Copy a Model
+
+Create a copy with a different name:
+
+```bash
+ollama cp llama3:8b my-llama3
+```
+
+### Delete a Model
+
+Remove a model from local storage:
+
+```bash
+ollama rm llama3:8b
+```
+
+### Pull Updates
+
+Update to the latest version:
+
+```bash
+ollama pull llama3:8b
+```
+
+## Running Models
+
+### Interactive Mode
+
+```bash
+ollama run llama3:8b
+```
+
+### Single Query
+
+```bash
+ollama run llama3:8b "Explain quantum computing"
+```
+
+### Via API
+
+<CodeGroup>
+```bash Generate
+curl http://localhost:11434/api/generate -d '{
+  "model": "llama3:8b",
+  "prompt": "Why is the sky blue?"
+}'
+```
+
+```bash Chat
+curl http://localhost:11434/api/chat -d '{
+  "model": "llama3:8b",
+  "messages": [
+    { "role": "user", "content": "Hello!" }
+  ]
+}'
+```
+</CodeGroup>
+
+## Model Capabilities
+
+Different models support different capabilities:
+
+<AccordionGroup>
+  <Accordion title="Vision" icon="image">
+    Models like Llama 3.2-Vision, Qwen 2.5-VL support image input and understanding.
+    
+    See [Vision documentation](/capabilities/vision) for details.
+  </Accordion>
+  
+  <Accordion title="Tool Calling" icon="wrench">
+    Many models support function calling and tool use for agentic applications.
+    
+    See [Tool Calling documentation](/capabilities/tool-calling) for details.
+  </Accordion>
+  
+  <Accordion title="Thinking/Reasoning" icon="brain">
+    Models like DeepSeek R1, GPT-OSS, Qwen 3 support extended reasoning.
+    
+    See [Thinking documentation](/capabilities/thinking) for details.
+  </Accordion>
+  
+  <Accordion title="Embeddings" icon="vector-square">
+    Specialized models generate embeddings for semantic search and similarity.
+    
+    See [Embeddings documentation](/capabilities/embeddings) for details.
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<Warning>
+  Always verify that you have sufficient RAM and VRAM before running large models. Use `ollama ps` to monitor resource usage.
+</Warning>
+
+<Check>
+  Start with smaller models (7B-13B) and increase size based on performance needs and available resources.
+</Check>
+
+<Tip>
+  Use quantized models (Q4, Q5) for better performance on consumer hardware while maintaining good quality.
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Modelfile" href="/modelfile" icon="file-code">
+    Learn how to create and customize models
+  </Card>
+  
+  <Card title="Context & Memory" href="/context-and-memory" icon="memory">
+    Understand how conversation context works
+  </Card>
+  
+  <Card title="API Reference" href="/api/introduction" icon="code">
+    Integrate models into your applications
+  </Card>
+  
+  <Card title="CLI Reference" href="/cli" icon="terminal">
+    Master the command-line interface
+  </Card>
+</CardGroup>

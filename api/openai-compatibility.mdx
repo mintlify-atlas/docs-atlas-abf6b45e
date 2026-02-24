@@ -1,0 +1,609 @@
+---
+title: OpenAI API Compatibility
+description: Use Ollama with OpenAI API-compatible applications
+---
+
+Ollama provides compatibility with the [OpenAI API](https://platform.openai.com/docs/api-reference) to help you integrate Ollama with existing applications that use OpenAI's API.
+
+## Quick Start
+
+Simply point your OpenAI client to Ollama's base URL and use any local model:
+
+<CodeGroup>
+
+```python Python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url='http://localhost:11434/v1/',
+    api_key='ollama',  # required but ignored
+)
+
+response = client.chat.completions.create(
+    model='llama3.2',
+    messages=[{
+        'role': 'user',
+        'content': 'Why is the sky blue?'
+    }]
+)
+print(response.choices[0].message.content)
+```
+
+```javascript JavaScript
+import OpenAI from 'openai';
+
+const client = new OpenAI({
+  baseURL: 'http://localhost:11434/v1/',
+  apiKey: 'ollama' // required but ignored
+});
+
+const response = await client.chat.completions.create({
+  model: 'llama3.2',
+  messages: [{ role: 'user', content: 'Why is the sky blue?' }]
+});
+
+console.log(response.choices[0].message.content);
+```
+
+```bash cURL
+curl http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "llama3.2",
+    "messages": [
+      {"role": "user", "content": "Why is the sky blue?"}
+    ]
+  }'
+```
+
+</CodeGroup>
+
+## Supported Endpoints
+
+### `/v1/chat/completions`
+
+Generate chat completions with conversational context.
+
+<Note>
+**Supported Features**
+- ✅ Multi-turn conversations
+- ✅ Streaming responses
+- ✅ Vision (multimodal)
+- ✅ Tool/function calling
+- ✅ JSON mode & structured outputs
+- ✅ Reproducible outputs (seed)
+</Note>
+
+#### Request Parameters
+
+| Parameter | Type | Description | Support |
+|-----------|------|-------------|:-------:|
+| `model` | string | Model name (e.g., "llama3.2") | ✅ |
+| `messages` | array | Conversation messages | ✅ |
+| `temperature` | number | Sampling temperature (0-2) | ✅ |
+| `top_p` | number | Nucleus sampling | ✅ |
+| `max_tokens` | integer | Maximum tokens to generate | ✅ |
+| `stream` | boolean | Enable streaming | ✅ |
+| `stream_options` | object | Streaming options | ✅ |
+| `stop` | string/array | Stop sequences | ✅ |
+| `seed` | integer | Random seed for reproducibility | ✅ |
+| `frequency_penalty` | number | Penalize frequent tokens | ✅ |
+| `presence_penalty` | number | Penalize existing tokens | ✅ |
+| `response_format` | object | JSON mode or structured output | ✅ |
+| `tools` | array | Available tools/functions | ✅ |
+| `logprobs` | boolean | Return log probabilities | ✅ |
+| `top_logprobs` | integer | Number of top logprobs | ✅ |
+| `tool_choice` | object | Force specific tool | ❌ |
+| `n` | integer | Number of completions | ❌ |
+| `user` | string | User identifier | ❌ |
+
+<Steps>
+
+### Basic Chat Completion
+
+```python
+response = client.chat.completions.create(
+    model='llama3.2',
+    messages=[
+        {'role': 'system', 'content': 'You are a helpful assistant.'},
+        {'role': 'user', 'content': 'Explain quantum computing'}
+    ]
+)
+```
+
+### Streaming Responses
+
+```python
+stream = client.chat.completions.create(
+    model='llama3.2',
+    messages=[{'role': 'user', 'content': 'Count to 10'}],
+    stream=True
+)
+
+for chunk in stream:
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end='')
+```
+
+### Vision (Multimodal)
+
+```python
+response = client.chat.completions.create(
+    model='llava',
+    messages=[{
+        'role': 'user',
+        'content': [
+            {'type': 'text', 'text': "What's in this image?"},
+            {'type': 'image_url', 'image_url': 'data:image/png;base64,...'}
+        ]
+    }]
+)
+```
+
+<Warning>
+**Image URLs not supported** - Only base64-encoded images are currently supported.
+</Warning>
+
+### Tool/Function Calling
+
+```python
+tools = [{
+    'type': 'function',
+    'function': {
+        'name': 'get_weather',
+        'description': 'Get current weather for a location',
+        'parameters': {
+            'type': 'object',
+            'properties': {
+                'location': {'type': 'string', 'description': 'City name'}
+            },
+            'required': ['location']
+        }
+    }
+}]
+
+response = client.chat.completions.create(
+    model='llama3.2',
+    messages=[{'role': 'user', 'content': 'What is the weather in Tokyo?'}],
+    tools=tools
+)
+
+# Check for tool calls
+if response.choices[0].message.tool_calls:
+    for tool_call in response.choices[0].message.tool_calls:
+        print(f"Tool: {tool_call.function.name}")
+        print(f"Args: {tool_call.function.arguments}")
+```
+
+### JSON Mode
+
+```python
+response = client.chat.completions.create(
+    model='llama3.2',
+    messages=[{
+        'role': 'user',
+        'content': 'List 3 colors in JSON format'
+    }],
+    response_format={'type': 'json_object'}
+)
+```
+
+### Structured Outputs
+
+```python
+response = client.chat.completions.create(
+    model='llama3.2',
+    messages=[{
+        'role': 'user',
+        'content': 'Extract person info: John Doe is 30 years old'
+    }],
+    response_format={
+        'type': 'json_schema',
+        'json_schema': {
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'name': {'type': 'string'},
+                    'age': {'type': 'integer'}
+                },
+                'required': ['name', 'age']
+            }
+        }
+    }
+)
+```
+
+</Steps>
+
+---
+
+### `/v1/completions`
+
+Generate text completions without conversational context.
+
+<Note>
+Use `/v1/chat/completions` for conversational AI. Use `/v1/completions` for text generation, code completion, and fill-in-the-middle tasks.
+</Note>
+
+#### Supported Parameters
+
+| Parameter | Support |
+|-----------|:-------:|
+| `model` | ✅ |
+| `prompt` | ✅ (string only) |
+| `suffix` | ✅ |
+| `temperature` | ✅ |
+| `top_p` | ✅ |
+| `max_tokens` | ✅ |
+| `stream` | ✅ |
+| `stop` | ✅ |
+| `seed` | ✅ |
+| `frequency_penalty` | ✅ |
+| `presence_penalty` | ✅ |
+| `logprobs` | ✅ |
+
+**Example:**
+
+```python
+response = client.completions.create(
+    model='codellama:code',
+    prompt='def calculate_fibonacci(',
+    suffix='    return result',
+    max_tokens=150
+)
+print(response.choices[0].text)
+```
+
+---
+
+### `/v1/embeddings`
+
+Generate vector embeddings for text.
+
+#### Supported Parameters
+
+| Parameter | Support |
+|-----------|:-------:|
+| `model` | ✅ |
+| `input` | ✅ (string or array) |
+| `encoding_format` | ✅ (float or base64) |
+| `dimensions` | ✅ |
+
+**Example:**
+
+```python
+response = client.embeddings.create(
+    model='nomic-embed-text',
+    input='Why is the sky blue?'
+)
+print(response.data[0].embedding)
+```
+
+**Batch Embeddings:**
+
+```python
+response = client.embeddings.create(
+    model='nomic-embed-text',
+    input=['First text', 'Second text', 'Third text']
+)
+```
+
+---
+
+### `/v1/models`
+
+List all available models.
+
+**Example:**
+
+```python
+models = client.models.list()
+for model in models.data:
+    print(model.id)
+```
+
+---
+
+### `/v1/models/{model}`
+
+Retrieve information about a specific model.
+
+**Example:**
+
+```python
+model = client.models.retrieve('llama3.2')
+print(model.id, model.created)
+```
+
+---
+
+### `/v1/images/generations` (Experimental)
+
+<Warning>
+**Experimental** - This endpoint is experimental and may change in future versions.
+</Warning>
+
+Generate images using image generation models.
+
+#### Supported Parameters
+
+| Parameter | Support |
+|-----------|:-------:|
+| `model` | ✅ |
+| `prompt` | ✅ |
+| `size` | ✅ |
+| `response_format` | ✅ (b64_json only) |
+
+**Example:**
+
+```python
+response = client.images.generate(
+    model='stable-diffusion',
+    prompt='A serene mountain landscape',
+    size='1024x1024'
+)
+print(response.data[0].b64_json[:50])
+```
+
+---
+
+### `/v1/responses`
+
+<Note>
+Added in Ollama v0.13.3
+</Note>
+
+Support for the OpenAI Responses API (non-stateful).
+
+#### Supported Features
+
+- ✅ Streaming
+- ✅ Tool calling
+- ✅ Reasoning summaries (thinking models)
+- ❌ Stateful requests (`previous_response_id`, `conversation`)
+
+**Example:**
+
+```python
+response = client.responses.create(
+    model='qwen3:8b',
+    input='Write a poem about the ocean'
+)
+print(response.output_text)
+```
+
+## Migration Guide
+
+### Switching from OpenAI to Ollama
+
+<Steps>
+
+### Install Ollama
+
+Download and install Ollama from [ollama.com](https://ollama.com).
+
+### Pull a Model
+
+```bash
+ollama pull llama3.2
+```
+
+### Update Your Code
+
+Change only the `base_url` and `api_key`:
+
+```python
+# Before (OpenAI)
+client = OpenAI(
+    api_key=os.environ['OPENAI_API_KEY']
+)
+
+# After (Ollama)
+client = OpenAI(
+    base_url='http://localhost:11434/v1/',
+    api_key='ollama'  # required but ignored
+)
+```
+
+### Use Local Models
+
+Replace OpenAI model names with Ollama models:
+
+```python
+# Before
+model='gpt-4'
+
+# After
+model='llama3.2'
+```
+
+</Steps>
+
+### Model Name Aliases
+
+For applications that expect default OpenAI model names:
+
+```bash
+# Create an alias
+ollama cp llama3.2 gpt-4
+
+# Now you can use 'gpt-4' as the model name
+```
+
+## Configuration
+
+### Custom Context Size
+
+Create a Modelfile to adjust context length:
+
+```dockerfile
+FROM llama3.2
+PARAMETER num_ctx 8192
+```
+
+Create the model:
+
+```bash
+ollama create mymodel -f Modelfile
+```
+
+Use the custom model:
+
+```python
+response = client.chat.completions.create(
+    model='mymodel',
+    messages=[...]
+)
+```
+
+## Differences from OpenAI API
+
+### Behavior Differences
+
+- **API Key**: Accepted but not validated (use any string)
+- **Model Names**: Use Ollama model names (e.g., `llama3.2`, not `gpt-4`)
+- **Token Counts**: Based on the underlying model's tokenizer
+- **Timestamps**: `created` field reflects model's last modified time
+- **Ownership**: `owned_by` defaults to the Ollama username or "library"
+
+### Not Supported
+
+<CardGroup cols={2}>
+
+<Card title="Multiple Completions" icon="xmark">
+`n` parameter for generating multiple choices
+</Card>
+
+<Card title="User Tracking" icon="xmark">
+`user` parameter for tracking users
+</Card>
+
+<Card title="Tool Choice" icon="xmark">
+`tool_choice` to force specific tool usage
+</Card>
+
+<Card title="Logit Bias" icon="xmark">
+`logit_bias` for token-level bias
+</Card>
+
+</CardGroup>
+
+## Best Practices
+
+<AccordionGroup>
+
+<Accordion title="Choosing the Right Model">
+Select models based on your use case:
+- **Chat**: `llama3.2`, `mistral`
+- **Code**: `codellama`, `deepseek-coder`
+- **Vision**: `llava`, `bakllava`
+- **Embeddings**: `nomic-embed-text`, `all-minilm`
+</Accordion>
+
+<Accordion title="Optimizing Performance">
+- Use streaming for better UX with long responses
+- Set appropriate `max_tokens` to control response length
+- Adjust `temperature` for creativity vs. determinism
+- Use `seed` for reproducible outputs in testing
+</Accordion>
+
+<Accordion title="Error Handling">
+Handle errors gracefully:
+```python
+try:
+    response = client.chat.completions.create(...)
+except Exception as e:
+    print(f"Error: {e}")
+```
+</Accordion>
+
+</AccordionGroup>
+
+## Examples
+
+### Complete Chat Application
+
+```python
+import openai
+
+client = openai.OpenAI(
+    base_url='http://localhost:11434/v1/',
+    api_key='ollama'
+)
+
+conversation = [
+    {'role': 'system', 'content': 'You are a helpful coding assistant.'}
+]
+
+while True:
+    user_input = input('You: ')
+    if user_input.lower() == 'quit':
+        break
+    
+    conversation.append({'role': 'user', 'content': user_input})
+    
+    response = client.chat.completions.create(
+        model='llama3.2',
+        messages=conversation,
+        stream=True
+    )
+    
+    assistant_message = ''
+    print('Assistant: ', end='')
+    for chunk in response:
+        if chunk.choices[0].delta.content:
+            content = chunk.choices[0].delta.content
+            print(content, end='', flush=True)
+            assistant_message += content
+    print()
+    
+    conversation.append({'role': 'assistant', 'content': assistant_message})
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+
+<Accordion title="Connection Refused">
+Ensure Ollama is running:
+```bash
+ollama serve
+```
+</Accordion>
+
+<Accordion title="Model Not Found">
+Pull the model first:
+```bash
+ollama pull llama3.2
+```
+</Accordion>
+
+<Accordion title="Slow Responses">
+- Check available VRAM
+- Use smaller models for faster inference
+- Reduce `num_ctx` in model configuration
+</Accordion>
+
+</AccordionGroup>
+
+## Resources
+
+<CardGroup cols={2}>
+
+<Card title="Ollama Models" icon="book" href="https://ollama.com/library">
+Browse available models
+</Card>
+
+<Card title="OpenAI SDK" icon="python" href="https://github.com/openai/openai-python">
+OpenAI Python library
+</Card>
+
+<Card title="API Reference" icon="code" href="/api-reference">
+Full API documentation
+</Card>
+
+<Card title="Community" icon="discord" href="https://discord.gg/ollama">
+Join the Ollama community
+</Card>
+
+</CardGroup>

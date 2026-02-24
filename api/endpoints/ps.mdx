@@ -1,0 +1,273 @@
+---
+title: 'GET /api/ps'
+description: 'List running models'
+---
+
+Get a list of models that are currently loaded in memory, including their memory usage and expiration time.
+
+## Request
+
+### Endpoint
+
+```
+GET /api/ps
+```
+
+### Request Parameters
+
+No parameters required.
+
+## Response
+
+### Response Fields
+
+<ResponseField name="models" type="array">
+  Array of currently loaded model objects
+  
+  <Expandable title="Model Object">
+    <ResponseField name="name" type="string">
+      Short name of the model
+    </ResponseField>
+    
+    <ResponseField name="model" type="string">
+      Full model identifier (same as `name`)
+    </ResponseField>
+    
+    <ResponseField name="size" type="integer">
+      Total size of the model in bytes
+    </ResponseField>
+    
+    <ResponseField name="size_vram" type="integer">
+      Size of model loaded in GPU memory (VRAM) in bytes
+    </ResponseField>
+    
+    <ResponseField name="digest" type="string">
+      SHA256 digest of the model
+    </ResponseField>
+    
+    <ResponseField name="details" type="object">
+      Model architecture details
+      
+      <Expandable title="Details Object">
+        <ResponseField name="format" type="string">
+          Model format (e.g., "gguf")
+        </ResponseField>
+        
+        <ResponseField name="family" type="string">
+          Model architecture family
+        </ResponseField>
+        
+        <ResponseField name="families" type="array">
+          Array of architecture families
+        </ResponseField>
+        
+        <ResponseField name="parameter_size" type="string">
+          Human-readable parameter count
+        </ResponseField>
+        
+        <ResponseField name="quantization_level" type="string">
+          Quantization format
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="expires_at" type="string">
+      Timestamp when the model will be unloaded from memory (ISO 8601)
+    </ResponseField>
+    
+    <ResponseField name="context_length" type="integer">
+      Current context window size in tokens
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Examples
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:11434/api/ps
+```
+
+```python Python
+import requests
+from datetime import datetime
+
+response = requests.get('http://localhost:11434/api/ps')
+models = response.json()['models']
+
+for model in models:
+    size_gb = model['size'] / (1024 ** 3)
+    vram_gb = model['size_vram'] / (1024 ** 3)
+    expires = datetime.fromisoformat(model['expires_at'].replace('Z', '+00:00'))
+    time_left = (expires - datetime.now()).total_seconds() / 60
+    
+    print(f"{model['name']}:")
+    print(f"  Total size: {size_gb:.2f} GB")
+    print(f"  VRAM used: {vram_gb:.2f} GB")
+    print(f"  Context length: {model['context_length']} tokens")
+    print(f"  Time until unload: {time_left:.1f} minutes\n")
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:11434/api/ps');
+const data = await response.json();
+
+data.models.forEach(model => {
+  const sizeGB = (model.size / (1024 ** 3)).toFixed(2);
+  const vramGB = (model.size_vram / (1024 ** 3)).toFixed(2);
+  const expires = new Date(model.expires_at);
+  const timeLeft = (expires - new Date()) / 1000 / 60; // minutes
+  
+  console.log(`${model.name}:`);
+  console.log(`  Total size: ${sizeGB} GB`);
+  console.log(`  VRAM used: ${vramGB} GB`);
+  console.log(`  Context length: ${model.context_length} tokens`);
+  console.log(`  Time until unload: ${timeLeft.toFixed(1)} minutes\n`);
+});
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "models": [
+    {
+      "name": "llama3.2",
+      "model": "llama3.2",
+      "size": 3826793677,
+      "size_vram": 3640655872,
+      "digest": "sha256:8daa9615cce30c259a9555b1cc250d461d1bc69980a274b44d7eda0be78076d8",
+      "details": {
+        "format": "gguf",
+        "family": "llama",
+        "families": ["llama"],
+        "parameter_size": "3B",
+        "quantization_level": "Q4_K_M"
+      },
+      "expires_at": "2024-02-24T12:39:56.789Z",
+      "context_length": 4096
+    },
+    {
+      "name": "mistral:7b-instruct",
+      "model": "mistral:7b-instruct",
+      "size": 4109865159,
+      "size_vram": 3942645760,
+      "digest": "sha256:2ae6f6dd7a3dd734790bbbf58b8909a606e0e7e97e94b7604e0aa7ae4490e6d8",
+      "details": {
+        "format": "gguf",
+        "family": "mistral",
+        "families": ["mistral"],
+        "parameter_size": "7B",
+        "quantization_level": "Q4_0"
+      },
+      "expires_at": "2024-02-24T12:41:23.456Z",
+      "context_length": 8192
+    }
+  ]
+}
+```
+
+### Monitor Memory Usage
+
+```python
+import requests
+import time
+
+def monitor_memory():
+    while True:
+        response = requests.get('http://localhost:11434/api/ps')
+        models = response.json()['models']
+        
+        total_vram = sum(m['size_vram'] for m in models)
+        total_vram_gb = total_vram / (1024 ** 3)
+        
+        print(f"\rLoaded models: {len(models)} | "
+              f"Total VRAM: {total_vram_gb:.2f} GB", end='')
+        
+        time.sleep(2)
+
+monitor_memory()
+```
+
+### Check if Model is Loaded
+
+```javascript
+async function isModelLoaded(modelName) {
+  const response = await fetch('http://localhost:11434/api/ps');
+  const data = await response.json();
+  
+  return data.models.some(m => m.name === modelName);
+}
+
+if (await isModelLoaded('llama3.2')) {
+  console.log('Model is ready in memory');
+} else {
+  console.log('Model needs to be loaded');
+}
+```
+
+### Memory Usage Report
+
+```python
+import requests
+
+def memory_report():
+    response = requests.get('http://localhost:11434/api/ps')
+    models = response.json()['models']
+    
+    if not models:
+        print("No models currently loaded")
+        return
+    
+    print("=== Loaded Models Memory Report ===")
+    print()
+    
+    total_size = 0
+    total_vram = 0
+    
+    for model in models:
+        size_gb = model['size'] / (1024 ** 3)
+        vram_gb = model['size_vram'] / (1024 ** 3)
+        total_size += model['size']
+        total_vram += model['size_vram']
+        
+        vram_percent = (model['size_vram'] / model['size'] * 100) if model['size'] > 0 else 0
+        
+        print(f"Model: {model['name']}")
+        print(f"  Parameters: {model['details']['parameter_size']}")
+        print(f"  Total size: {size_gb:.2f} GB")
+        print(f"  VRAM usage: {vram_gb:.2f} GB ({vram_percent:.1f}%)")
+        print(f"  Context: {model['context_length']} tokens")
+        print()
+    
+    print(f"Total: {len(models)} models")
+    print(f"Total size: {total_size / (1024 ** 3):.2f} GB")
+    print(f"Total VRAM: {total_vram / (1024 ** 3):.2f} GB")
+
+memory_report()
+```
+
+## Error Responses
+
+<ResponseField name="error" type="string">
+  Description of the error
+</ResponseField>
+
+### Common Errors
+
+- **500 Internal Server Error**: Error accessing scheduler state
+
+<Note>
+Models are sorted by expiration time, with models that will expire soonest appearing first.
+</Note>
+
+<Note>
+The `expires_at` time updates whenever the model is used. Models are automatically unloaded from memory after their expiration time.
+</Note>
+
+<Note>
+`size` represents the total model size, while `size_vram` shows how much is actually loaded in GPU memory. The difference is typically loaded in system RAM or offloaded.
+</Note>

@@ -1,0 +1,229 @@
+---
+title: 'ollama run'
+description: 'Run a model interactively or with a prompt'
+icon: 'play'
+---
+
+## Synopsis
+
+```bash
+ollama run MODEL [PROMPT]
+```
+
+## Description
+
+The `run` command starts a model and allows you to interact with it. If the model is not already present locally, it will be pulled automatically from the registry.
+
+You can use `run` in two modes:
+- **Interactive mode**: No prompt provided, opens a chat interface
+- **Single-shot mode**: Prompt provided, returns response and exits
+
+## Arguments
+
+<ParamField path="MODEL" type="string" required>
+  Name of the model to run (e.g., `llama3.2`, `mistral`, `codellama:7b`)
+</ParamField>
+
+<ParamField path="PROMPT" type="string">
+  Optional prompt to send to the model. If omitted, enters interactive mode.
+</ParamField>
+
+## Options
+
+<ParamField path="--keepalive" type="duration">
+  Duration to keep the model loaded in memory (e.g., `5m`, `1h`)
+  
+  - Default: Server configuration (typically 5 minutes)
+  - `0` - Unload immediately after use
+  - `-1` - Keep loaded indefinitely
+</ParamField>
+
+<ParamField path="--format" type="string">
+  Response format. Use `json` to request JSON output.
+  
+  ```bash
+  ollama run llama3.2 --format json "List 3 programming languages"
+  ```
+</ParamField>
+
+<ParamField path="--verbose" type="boolean" default="false">
+  Show detailed timing information for the response, including:
+  - Prompt evaluation time
+  - Response generation time
+  - Total tokens processed
+</ParamField>
+
+<ParamField path="--nowordwrap" type="boolean" default="false">
+  Disable automatic word wrapping in terminal output
+</ParamField>
+
+### Thinking Mode Options
+
+<ParamField path="--think" type="string|boolean">
+  Enable thinking mode for supported models. Accepts:
+  - `true` or empty - Enable default thinking
+  - `false` - Disable thinking
+  - `high`, `medium`, `low` - Set thinking effort level
+  
+  ```bash
+  ollama run deepseek-r1 --think
+  ollama run deepseek-r1 --think=high
+  ```
+</ParamField>
+
+<ParamField path="--hidethinking" type="boolean" default="false">
+  Hide the thinking output from display (only show final answer)
+</ParamField>
+
+### Embedding Model Options
+
+<ParamField path="--truncate" type="boolean" default="true">
+  For embedding models: truncate inputs that exceed context length. Set to `false` to error instead.
+</ParamField>
+
+<ParamField path="--dimensions" type="integer" default="0">
+  For embedding models: truncate output embeddings to specified dimension
+</ParamField>
+
+### Experimental Options
+
+<ParamField path="--experimental" type="boolean" default="false">
+  Enable experimental agent loop with tool support
+</ParamField>
+
+<ParamField path="--experimental-yolo" type="boolean" default="false">
+  Skip all tool approval prompts (use with caution)
+</ParamField>
+
+<ParamField path="--experimental-websearch" type="boolean" default="false">
+  Enable web search tool in experimental mode
+</ParamField>
+
+## Examples
+
+### Interactive Mode
+
+Start an interactive chat session:
+
+```bash
+ollama run llama3.2
+```
+
+### Single Prompt
+
+Run a one-off prompt:
+
+```bash
+ollama run llama3.2 "Why is the sky blue?"
+```
+
+### Piped Input
+
+Pipe content from stdin:
+
+```bash
+cat document.txt | ollama run llama3.2 "Summarize this document:"
+```
+
+### JSON Output
+
+Request structured JSON responses:
+
+<CodeGroup>
+```bash Simple
+ollama run llama3.2 --format json "List 3 colors"
+```
+
+```bash With Schema
+ollama run llama3.2 --format json '{"name": "colors", "items": []}'
+```
+</CodeGroup>
+
+### Control Model Memory
+
+```bash
+# Keep model loaded for 10 minutes
+ollama run llama3.2 --keepalive 10m "Hello"
+
+# Unload immediately after response
+ollama run llama3.2 --keepalive 0 "Hello"
+
+# Keep loaded indefinitely
+ollama run llama3.2 --keepalive -1
+```
+
+### Thinking Models
+
+Use reasoning models with visible thinking:
+
+```bash
+# Enable thinking with default settings
+ollama run deepseek-r1 --think "Solve this problem: ..."
+
+# High effort thinking
+ollama run deepseek-r1 --think=high "Complex reasoning task"
+
+# Hide thinking output
+ollama run deepseek-r1 --think --hidethinking "Just show the answer"
+```
+
+### Embedding Models
+
+Generate embeddings:
+
+```bash
+ollama run nomic-embed-text "Your text here"
+```
+
+<Note>
+Embedding models return JSON arrays of floating-point numbers representing the text embedding.
+</Note>
+
+## Interactive Mode Commands
+
+When in interactive mode, you can use these special commands:
+
+- `/bye` - Exit the session
+- `/clear` - Clear conversation history
+- `/show` - Display model information
+- `/set` - Set session parameters (e.g., `/set think`, `/set nothink`)
+- `/load <image>` - Load an image for multimodal models
+- Multiline input: Use `"""` to enter multiline mode, `"""` again to submit
+
+## Output Format
+
+Interactive mode displays:
+```
+>>> Your prompt here
+
+Model response appears here...
+```
+
+Non-interactive mode outputs the response directly to stdout.
+
+## Environment Variables
+
+<ParamField path="OLLAMA_HOST" type="string" default="http://127.0.0.1:11434">
+  Ollama server address
+</ParamField>
+
+<ParamField path="OLLAMA_EDITOR" type="string">
+  Editor to use for multiline input (e.g., `vim`, `nano`)
+</ParamField>
+
+<ParamField path="OLLAMA_NOHISTORY" type="boolean" default="false">
+  Disable saving chat history
+</ParamField>
+
+## Exit Codes
+
+- `0` - Success
+- `1` - Model not found or error occurred
+- `130` - Interrupted by user (Ctrl+C)
+
+## Related Commands
+
+- [`ollama pull`](/cli/pull) - Download a model without running it
+- [`ollama show`](/cli/show) - Display model information
+- [`ollama ps`](/cli/ps) - List currently running models
+- [`ollama stop`](/cli/stop) - Stop a running model

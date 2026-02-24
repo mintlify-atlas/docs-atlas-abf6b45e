@@ -1,0 +1,344 @@
+---
+title: Windows
+description: Install and run Ollama on Windows with NVIDIA and AMD Radeon GPU support
+---
+
+Ollama runs as a native Windows application with full GPU support for NVIDIA and AMD Radeon cards.
+
+## System Requirements
+
+- **Windows:** 10 22H2 or newer, Home or Pro
+- **NVIDIA:** Driver version 452.39 or newer
+- **AMD Radeon:** Latest drivers from [AMD Support](https://www.amd.com/en/support)
+- **Storage:** At least 4GB for installation, plus space for models
+
+<Note>
+Ollama uses Unicode characters for progress indicators. If you see unknown squares in Windows 10, try changing your terminal font settings.
+</Note>
+
+## Installation
+
+### Quick Install
+
+Install using PowerShell:
+
+```powershell
+irm https://ollama.com/install.ps1 | iex
+```
+
+### Manual Installation
+
+1. [Download OllamaSetup.exe](https://ollama.com/download/OllamaSetup.exe)
+2. Run the installer
+3. Ollama will start automatically in the background
+
+The installer does not require Administrator rights and installs to your user profile by default.
+
+## Using Ollama
+
+After installation, Ollama runs in the background and the `ollama` command is available in PowerShell, Command Prompt, or your preferred terminal.
+
+### Run Your First Model
+
+```powershell
+ollama run gemma3
+```
+
+### Check Running Models
+
+```powershell
+ollama ps
+```
+
+### View Installed Models
+
+```powershell
+ollama list
+```
+
+## Configuration
+
+### File Locations
+
+You can access these locations in File Explorer by pressing `Win+R` and entering:
+
+| Shortcut | Location | Contents |
+|----------|----------|----------|
+| `%LOCALAPPDATA%\Ollama` | Logs and updates | `server.log`, `app.log`, `upgrade.log` |
+| `%LOCALAPPDATA%\Programs\Ollama` | Binaries | Executable files (added to PATH) |
+| `%HOMEPATH%\.ollama` | Models and config | Downloaded models and configuration |
+| `%TEMP%` | Temporary files | `ollama*` directories with temp executables |
+
+### Custom Installation Directory
+
+To install Ollama in a custom location:
+
+```powershell
+OllamaSetup.exe /DIR="D:\Programs\Ollama"
+```
+
+### Changing Model Storage Location
+
+If your home directory doesn't have enough space for models:
+
+<Steps>
+  <Step title="Open Environment Variables">
+    1. Open **Settings** (Windows 11) or **Control Panel** (Windows 10)
+    2. Search for "environment variables"
+    3. Click "Edit environment variables for your account"
+  </Step>
+
+  <Step title="Set OLLAMA_MODELS">
+    1. Click **New** or select existing `OLLAMA_MODELS` variable
+    2. Set the value to your desired path (e.g., `D:\OllamaModels`)
+    3. Click **OK** to save
+  </Step>
+
+  <Step title="Restart Ollama">
+    1. Right-click Ollama in the system tray
+    2. Select **Quit**
+    3. Relaunch Ollama from the Start menu
+  </Step>
+</Steps>
+
+### Environment Variables
+
+Set environment variables through Windows Settings:
+
+<Steps>
+  <Step title="Quit Ollama">
+    Right-click the Ollama icon in the system tray and select **Quit**.
+  </Step>
+
+  <Step title="Open Environment Variables">
+    1. Open **Settings** (Windows 11) or **Control Panel** (Windows 10)
+    2. Search for "environment variables"
+    3. Click "Edit environment variables for your account"
+  </Step>
+
+  <Step title="Add/Edit Variables">
+    Create or modify variables like:
+    - `OLLAMA_HOST`
+    - `OLLAMA_MODELS`
+    - `OLLAMA_DEBUG`
+
+    Click **OK** to save.
+  </Step>
+
+  <Step title="Restart Ollama">
+    Launch Ollama from the Windows Start menu.
+  </Step>
+</Steps>
+
+### Common Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|--------|
+| `OLLAMA_HOST` | Server bind address | `127.0.0.1:11434` |
+| `OLLAMA_MODELS` | Model storage location | `%HOMEPATH%\.ollama\models` |
+| `OLLAMA_DEBUG` | Enable debug logging | `0` |
+| `OLLAMA_NUM_PARALLEL` | Max parallel requests | `1` |
+| `OLLAMA_KEEP_ALIVE` | Model keep-alive duration | `5m` |
+
+## GPU Support
+
+### NVIDIA GPUs
+
+Ollama automatically detects NVIDIA GPUs with compatible drivers:
+
+- **Required:** Driver version 452.39 or newer
+- **Supported:** Compute capability 5.0+ (GTX 750 Ti and newer)
+
+Verify GPU detection:
+
+```powershell
+nvidia-smi
+```
+
+### AMD Radeon GPUs
+
+Ollama supports AMD Radeon GPUs via ROCm:
+
+- **Required:** Latest Radeon drivers
+- **Download:** [AMD Support Site](https://www.amd.com/en/support)
+
+Supported GPUs include:
+- Radeon RX 7000 series
+- Radeon RX 6000 series
+- Radeon PRO W7000/W6000 series
+
+## Standalone CLI
+
+For advanced use cases like running Ollama as a Windows service:
+
+### Download Standalone ZIP
+
+1. Download `ollama-windows-amd64.zip` from [releases](https://github.com/ollama/ollama/releases)
+2. Extract to your desired location
+3. For AMD GPUs, also download and extract `ollama-windows-amd64-rocm.zip` to the same directory
+
+### Run as a Service
+
+Use [NSSM](https://nssm.cc/) to run Ollama as a Windows service:
+
+```powershell
+nssm install Ollama "C:\path\to\ollama.exe" serve
+nssm start Ollama
+```
+
+<Warning>
+If upgrading from a prior version, remove old directories first.
+</Warning>
+
+## API Access
+
+Ollama's REST API is available at `http://localhost:11434`:
+
+```powershell
+(Invoke-WebRequest -Method POST -Body '{
+  "model": "gemma3",
+  "prompt": "Why is the sky blue?",
+  "stream": false
+}' -Uri http://localhost:11434/api/generate).Content | ConvertFrom-Json
+```
+
+See the [API documentation](/api) for complete reference.
+
+## Updates
+
+Ollama automatically downloads updates:
+
+1. Click the Ollama icon in the system tray
+2. When an update is available, select "Restart to update"
+
+Or [download the latest installer](https://ollama.com/download/OllamaSetup.exe) manually.
+
+## Disable Auto-Start on Login
+
+To prevent Ollama from starting automatically:
+
+1. Open **Task Manager** (`Ctrl+Shift+Esc`)
+2. Go to the **Startup apps** tab
+3. Find **Ollama** and click **Disable**
+
+This setting persists across updates.
+
+## Logs and Debugging
+
+### View Logs
+
+Access logs through File Explorer:
+
+```powershell
+explorer %LOCALAPPDATA%\Ollama
+```
+
+- `server.log` - Most recent server logs
+- `app.log` - GUI application logs
+- `upgrade.log` - Update logs
+
+### Enable Debug Logging
+
+In PowerShell:
+
+```powershell
+$env:OLLAMA_DEBUG="1"
+& "$env:LOCALAPPDATA\Programs\Ollama\ollama app.exe"
+```
+
+### View Logs in PowerShell
+
+```powershell
+Get-Content $env:LOCALAPPDATA\Ollama\server.log -Tail 50 -Wait
+```
+
+## Troubleshooting
+
+### Ollama Not Starting
+
+1. Check if Ollama is running:
+   ```powershell
+   Get-Process ollama
+   ```
+
+2. Check the system tray for the Ollama icon
+
+3. Review logs:
+   ```powershell
+   Get-Content $env:LOCALAPPDATA\Ollama\server.log -Tail 50
+   ```
+
+### GPU Not Detected
+
+**For NVIDIA:**
+
+1. Verify driver version:
+   ```powershell
+   nvidia-smi
+   ```
+
+2. Ensure driver is 452.39 or newer
+3. Restart your computer
+
+**For AMD:**
+
+1. Update to the latest Radeon drivers
+2. Verify GPU is supported
+3. Check if ROCm libraries were extracted correctly
+
+### Port Already in Use
+
+If port 11434 is already in use:
+
+1. Set a different port:
+   ```powershell
+   $env:OLLAMA_HOST="127.0.0.1:11435"
+   ```
+
+2. Restart Ollama
+
+### Terminal Display Issues (Windows 10)
+
+Older Windows 10 versions (like 21H1) have a bug where control characters display incorrectly:
+
+- **Symptom:** Long strings of characters like `←[?25h←[?25l`
+- **Error:** "The parameter is incorrect"
+- **Solution:** Update to Windows 10 22H1 or newer
+
+### Insufficient Storage
+
+Models can be tens to hundreds of GB:
+
+1. Check available space:
+   ```powershell
+   Get-PSDrive C
+   ```
+
+2. Change model location using [environment variables](#changing-model-storage-location)
+
+## Uninstallation
+
+1. Open **Settings**
+2. Go to **Apps** → **Installed apps**
+3. Find **Ollama** and click **Uninstall**
+
+<Note>
+If you've changed the `OLLAMA_MODELS` location, the uninstaller will not remove downloaded models.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Get started with your first model
+  </Card>
+  <Card title="GPU Configuration" icon="microchip" href="/gpu">
+    Optimize GPU settings and performance
+  </Card>
+  <Card title="API Reference" icon="code" href="/api">
+    Integrate Ollama into your applications
+  </Card>
+  <Card title="Model Library" icon="book" href="https://ollama.com/library">
+    Browse available models
+  </Card>
+</CardGroup>

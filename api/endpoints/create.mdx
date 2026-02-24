@@ -1,0 +1,258 @@
+---
+title: 'POST /api/create'
+description: 'Create a model from a Modelfile'
+---
+
+Create a new model from a Modelfile, GGUF file, or safetensors format. This endpoint supports streaming progress updates during model creation.
+
+## Request
+
+### Endpoint
+
+```
+POST /api/create
+```
+
+### Request Body
+
+<ParamField path="model" type="string" required>
+  Name for the new model (e.g., `my-model`, `namespace/model:tag`)
+</ParamField>
+
+<ParamField path="from" type="string">
+  Model name to use as base, or path to local file
+</ParamField>
+
+<ParamField path="files" type="object">
+  Map of file paths to blob digests for model files (GGUF or safetensors)
+  
+  Example: `{"model.gguf": "sha256:abc123...", "config.json": "sha256:def456..."}`
+</ParamField>
+
+<ParamField path="adapters" type="object">
+  Map of LoRA adapter files to include when creating the model
+</ParamField>
+
+<ParamField path="stream" type="boolean" default="true">
+  Enable streaming of progress updates
+</ParamField>
+
+<ParamField path="quantize" type="string">
+  Quantization format for the model (e.g., `"Q4_0"`, `"Q5_K_M"`, `"Q8_0"`)
+</ParamField>
+
+<ParamField path="remote_host" type="string">
+  URL of upstream Ollama API for remote models
+</ParamField>
+
+<ParamField path="template" type="string">
+  Custom prompt template to use for the model
+</ParamField>
+
+<ParamField path="system" type="string">
+  System prompt for the model
+</ParamField>
+
+<ParamField path="license" type="string | array">
+  License information (string or array of strings)
+</ParamField>
+
+<ParamField path="parameters" type="object">
+  Map of model parameters (e.g., temperature, top_k, etc.)
+</ParamField>
+
+<ParamField path="messages" type="array">
+  List of messages to embed in the model
+</ParamField>
+
+<ParamField path="renderer" type="string">
+  Template renderer to use
+</ParamField>
+
+<ParamField path="parser" type="string">
+  Output parser to use (e.g., `"harmony"` for GPT-OSS models)
+</ParamField>
+
+<ParamField path="requires" type="string">
+  Minimum Ollama version required by the model
+</ParamField>
+
+<ParamField path="info" type="object">
+  Additional metadata for the model (not exposed in Modelfiles)
+</ParamField>
+
+## Response
+
+### Response Fields
+
+<ResponseField name="status" type="string">
+  Status message describing the current operation
+</ResponseField>
+
+<ResponseField name="digest" type="string">
+  Digest of the layer being processed (during operations)
+</ResponseField>
+
+<ResponseField name="total" type="integer">
+  Total size in bytes (during file operations)
+</ResponseField>
+
+<ResponseField name="completed" type="integer">
+  Bytes completed (during file operations)
+</ResponseField>
+
+## Examples
+
+### Create from Base Model
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:11434/api/create -d '{
+  "model": "my-custom-model",
+  "from": "llama3.2",
+  "system": "You are a helpful coding assistant.",
+  "parameters": {
+    "temperature": 0.7,
+    "top_p": 0.9
+  }
+}'
+```
+
+```python Python
+import requests
+import json
+
+response = requests.post(
+    'http://localhost:11434/api/create',
+    json={
+        'model': 'my-custom-model',
+        'from': 'llama3.2',
+        'system': 'You are a helpful coding assistant.',
+        'parameters': {
+            'temperature': 0.7,
+            'top_p': 0.9
+        }
+    },
+    stream=True
+)
+
+for line in response.iter_lines():
+    if line:
+        progress = json.loads(line)
+        print(progress['status'])
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:11434/api/create', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'my-custom-model',
+    from: 'llama3.2',
+    system: 'You are a helpful coding assistant.',
+    parameters: {
+      temperature: 0.7,
+      top_p: 0.9
+    }
+  })
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const chunk = JSON.parse(decoder.decode(value));
+  console.log(chunk.status);
+}
+```
+
+</CodeGroup>
+
+### Create from GGUF File
+
+First, upload the GGUF file:
+
+```bash
+# Upload the file and get its digest
+digest=$(sha256sum model.gguf | awk '{print "sha256:" $1}')
+curl http://localhost:11434/api/blobs/$digest --data-binary @model.gguf
+```
+
+Then create the model:
+
+```bash
+curl http://localhost:11434/api/create -d '{
+  "model": "my-gguf-model",
+  "files": {
+    "model.gguf": "'$digest'"
+  }
+}'
+```
+
+### Create with Quantization
+
+```bash
+curl http://localhost:11434/api/create -d '{
+  "model": "my-quantized-model",
+  "from": "llama3.2",
+  "quantize": "Q4_K_M"
+}'
+```
+
+### Create from Safetensors
+
+```bash
+curl http://localhost:11434/api/create -d '{
+  "model": "my-st-model",
+  "files": {
+    "model-00001-of-00002.safetensors": "sha256:abc123...",
+    "model-00002-of-00002.safetensors": "sha256:def456...",
+    "config.json": "sha256:ghi789...",
+    "tokenizer.json": "sha256:jkl012..."
+  }
+}'
+```
+
+### Non-Streaming Response
+
+```bash
+curl http://localhost:11434/api/create -d '{
+  "model": "my-model",
+  "from": "llama3.2",
+  "stream": false
+}'
+```
+
+### Example Streaming Response
+
+```json
+{"status":"parsing modelfile"}
+{"status":"looking up model manifest"}
+{"status":"creating model layer"}
+{"status":"writing manifest"}
+{"status":"success"}
+```
+
+## Error Responses
+
+<ResponseField name="error" type="string">
+  Description of the error
+</ResponseField>
+
+### Common Errors
+
+- **400 Bad Request**: Invalid model name, missing required fields, or invalid file paths
+- **404 Not Found**: Base model not found
+- **500 Internal Server Error**: Error during model creation
+
+<Note>
+You must provide either `from` (base model) or `files` (model files), but not both.
+</Note>
+
+<Note>
+When creating from files, ensure all files are uploaded via `/api/blobs/:digest` before calling `/api/create`.
+</Note>

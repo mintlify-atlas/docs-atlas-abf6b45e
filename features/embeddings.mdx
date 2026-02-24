@@ -1,0 +1,241 @@
+---
+title: Embeddings
+description: Generate text embeddings for semantic search, retrieval, and RAG.
+---
+
+Embeddings turn text into numeric vectors you can store in a vector database, search with cosine similarity, or use in RAG pipelines. The vector length depends on the model (typically 384–1024 dimensions).
+
+## Recommended models
+
+- [embeddinggemma](https://ollama.com/library/embeddinggemma)
+- [qwen3-embedding](https://ollama.com/library/qwen3-embedding)
+- [all-minilm](https://ollama.com/library/all-minilm)
+
+## Generate embeddings
+
+<Tabs>
+  <Tab title="CLI">
+    Generate embeddings directly from the command line:
+
+    ```shell
+    ollama run embeddinggemma "Hello world"
+    ```
+
+    You can also pipe text to generate embeddings:
+
+    ```shell
+    echo "Hello world" | ollama run embeddinggemma
+    ```
+
+    Output is a JSON array.
+  </Tab>
+  <Tab title="cURL">
+    ```shell
+    curl -X POST http://localhost:11434/api/embed \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "embeddinggemma",
+        "input": "The quick brown fox jumps over the lazy dog."
+      }'
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ollama
+
+    single = ollama.embed(
+      model='embeddinggemma',
+      input='The quick brown fox jumps over the lazy dog.'
+    )
+    print(len(single['embeddings'][0]))  # vector length
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    import ollama from 'ollama'
+
+    const single = await ollama.embed({
+      model: 'embeddinggemma',
+      input: 'The quick brown fox jumps over the lazy dog.',
+    })
+    console.log(single.embeddings[0].length) // vector length
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  The `/api/embed` endpoint returns L2-normalized (unit-length) vectors.
+</Note>
+
+## Generate a batch of embeddings
+
+Pass an array of strings to `input` to generate multiple embeddings in a single request.
+
+<Tabs>
+  <Tab title="cURL">
+    ```shell
+    curl -X POST http://localhost:11434/api/embed \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "embeddinggemma",
+        "input": [
+          "First sentence",
+          "Second sentence",
+          "Third sentence"
+        ]
+      }'
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import ollama
+
+    batch = ollama.embed(
+      model='embeddinggemma',
+      input=[
+        'The quick brown fox jumps over the lazy dog.',
+        'The five boxing wizards jump quickly.',
+        'Jackdaws love my big sphinx of quartz.',
+      ]
+    )
+    print(len(batch['embeddings']))  # number of vectors
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    import ollama from 'ollama'
+
+    const batch = await ollama.embed({
+      model: 'embeddinggemma',
+      input: [
+        'The quick brown fox jumps over the lazy dog.',
+        'The five boxing wizards jump quickly.',
+        'Jackdaws love my big sphinx of quartz.',
+      ],
+    })
+    console.log(batch.embeddings.length) // number of vectors
+    ```
+  </Tab>
+</Tabs>
+
+## API parameters
+
+<ParamField path="model" type="string" required>
+  The embedding model name (e.g., `embeddinggemma`, `all-minilm`)
+</ParamField>
+
+<ParamField path="input" type="string | array" required>
+  The text or array of texts to embed
+</ParamField>
+
+<ParamField path="truncate" type="boolean" default="true">
+  Truncate input to fit the model's max sequence length
+</ParamField>
+
+<ParamField path="dimensions" type="integer">
+  Truncate the output embedding to the specified dimension (matryoshka embeddings)
+</ParamField>
+
+<ParamField path="keep_alive" type="duration" default="5m">
+  How long to keep the model loaded in memory
+</ParamField>
+
+<ParamField path="options" type="object">
+  Model-specific options
+</ParamField>
+
+## Response structure
+
+```json
+{
+  "model": "embeddinggemma",
+  "embeddings": [
+    [0.123, -0.456, 0.789, ...],
+    [0.321, -0.654, 0.987, ...]
+  ],
+  "total_duration": 124563708,
+  "load_duration": 6338219,
+  "prompt_eval_count": 12
+}
+```
+
+## Using embeddings for semantic search
+
+<Steps>
+  <Step title="Generate embeddings for your documents">
+    ```python
+    import ollama
+
+    documents = [
+      "Ollama is a tool for running LLMs locally.",
+      "Python is a popular programming language.",
+      "Machine learning models can be deployed on edge devices."
+    ]
+
+    doc_embeddings = ollama.embed(
+      model='embeddinggemma',
+      input=documents
+    )['embeddings']
+    ```
+  </Step>
+  <Step title="Generate an embedding for the query">
+    ```python
+    query = "How do I run AI models on my computer?"
+    query_embedding = ollama.embed(
+      model='embeddinggemma',
+      input=query
+    )['embeddings'][0]
+    ```
+  </Step>
+  <Step title="Calculate cosine similarity">
+    ```python
+    import numpy as np
+
+    def cosine_similarity(a, b):
+      return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+    similarities = [
+      cosine_similarity(query_embedding, doc_emb)
+      for doc_emb in doc_embeddings
+    ]
+
+    # Find the most similar document
+    best_match_idx = np.argmax(similarities)
+    print(f"Best match: {documents[best_match_idx]}")
+    print(f"Similarity: {similarities[best_match_idx]:.4f}")
+    ```
+  </Step>
+</Steps>
+
+## Matryoshka embeddings
+
+Some embedding models support matryoshka representations, allowing you to truncate embeddings to smaller dimensions while maintaining good performance.
+
+```python
+import ollama
+
+# Generate full embedding
+full = ollama.embed(
+  model='embeddinggemma',
+  input='Sample text'
+)
+
+# Generate truncated embedding (faster search, less storage)
+truncated = ollama.embed(
+  model='embeddinggemma',
+  input='Sample text',
+  dimensions=256
+)
+
+print(f"Full dimension: {len(full['embeddings'][0])}")      # e.g., 768
+print(f"Truncated dimension: {len(truncated['embeddings'][0])}")  # 256
+```
+
+## Tips
+
+- Use cosine similarity for most semantic search use cases
+- Use the same embedding model for both indexing and querying
+- Normalize embeddings if your vector database doesn't do it automatically (Ollama returns normalized vectors)
+- Batch embed documents for better performance
+- Store embeddings in a vector database like Chroma, Pinecone, or Qdrant for production use
+- Consider using `dimensions` parameter for faster search with minimal quality loss

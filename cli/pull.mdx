@@ -1,0 +1,223 @@
+---
+title: 'ollama pull'
+description: 'Download a model from a registry'
+icon: 'download'
+---
+
+## Synopsis
+
+```bash
+ollama pull MODEL
+```
+
+## Description
+
+The `pull` command downloads a model from a registry (default: Ollama's public registry) to your local machine. Once pulled, the model can be used with `ollama run` and other commands.
+
+Models are downloaded in chunks with progress indication. If the download is interrupted, it will resume from where it left off.
+
+## Arguments
+
+<ParamField path="MODEL" type="string" required>
+  Name of the model to pull. Can include:
+  - Model name: `llama3.2`
+  - Model with tag: `llama3.2:8b`
+  - Model from custom registry: `registry.example.com/mymodel:latest`
+</ParamField>
+
+## Options
+
+<ParamField path="--insecure" type="boolean" default="false">
+  Allow pulling from registries without HTTPS
+  
+  ```bash
+  ollama pull --insecure localhost:5000/mymodel
+  ```
+</ParamField>
+
+## Model Naming
+
+Models follow this naming convention:
+
+```
+[REGISTRY/][NAMESPACE/]MODEL[:TAG]
+```
+
+- **REGISTRY**: Optional, defaults to `registry.ollama.ai`
+- **NAMESPACE**: Optional, defaults to `library`
+- **MODEL**: Required model name
+- **TAG**: Optional, defaults to `latest`
+
+### Examples
+
+```bash
+ollama pull llama3.2              # Pulls library/llama3.2:latest
+ollama pull llama3.2:8b           # Pulls library/llama3.2:8b
+ollama pull mistral:7b-instruct   # Pulls library/mistral:7b-instruct
+```
+
+## Examples
+
+### Pull Default Tag
+
+Pull a model with the default `latest` tag:
+
+```bash
+ollama pull llama3.2
+```
+
+Output:
+```
+pulling manifest
+pulling 8934d96d3f08: 100%
+pulling 8c17c2ebb0ea: 100%
+pulling 7c23fb36d801: 100%
+pulling 2e0493f67d0c: 100%
+pulling fa304d675061: 100%
+pulling 42ba7f8a01dd: 100%
+verifying sha256 digest
+writing manifest
+success
+```
+
+### Pull Specific Tag
+
+Pull a specific model variant:
+
+```bash
+ollama pull llama3.2:8b
+```
+
+### Pull from Custom Registry
+
+Pull from a private or custom registry:
+
+```bash
+ollama pull registry.company.com/custom-model:v1
+```
+
+### Pull Without TLS
+
+Pull from a local or insecure registry:
+
+```bash
+ollama pull --insecure localhost:5000/test-model
+```
+
+<Warning>
+Only use `--insecure` for trusted local registries. Never use it for public or untrusted sources.
+</Warning>
+
+## Progress Output
+
+During download, you'll see progress for each layer:
+
+```
+pulling manifest
+pulling 8934d96d3f08: 45% ████████░░░░░░░░ 2.3 GB/5.0 GB
+pulling 8c17c2ebb0ea: queued
+```
+
+Progress indicators show:
+- Layer digest (first 12 characters)
+- Percentage complete
+- Bytes downloaded / total size
+
+## Storage Location
+
+Models are stored in:
+- **Linux/macOS**: `~/.ollama/models`
+- **Windows**: `%USERPROFILE%\.ollama\models`
+- **Custom**: Set `OLLAMA_MODELS` environment variable
+
+## Model Layers
+
+Ollama models consist of multiple layers:
+- **Manifest**: Model metadata and configuration
+- **Model weights**: Neural network parameters (largest layer)
+- **Template**: Prompt formatting template
+- **Parameters**: Model hyperparameters
+- **System message**: Default system prompt
+- **License**: Model license information
+
+## Resumable Downloads
+
+If a download is interrupted (network issue, Ctrl+C, etc.), simply run `ollama pull` again. The download will resume from where it left off without re-downloading completed layers.
+
+## Disk Space
+
+Before pulling, ensure you have sufficient disk space:
+
+| Model Size | Approximate Disk Space |
+|------------|------------------------|
+| 1B params  | ~1 GB                 |
+| 3B params  | ~2 GB                 |
+| 7B params  | ~4-5 GB               |
+| 13B params | ~8-9 GB               |
+| 34B params | ~20 GB                |
+| 70B params | ~40 GB                |
+
+## Environment Variables
+
+<ParamField path="OLLAMA_HOST" type="string" default="http://127.0.0.1:11434">
+  Ollama server address to send the pull request
+</ParamField>
+
+<ParamField path="OLLAMA_MODELS" type="string" default="~/.ollama/models">
+  Directory where pulled models will be stored
+</ParamField>
+
+## Exit Codes
+
+- `0` - Success, model pulled completely
+- `1` - Error occurred (network issue, insufficient disk space, etc.)
+
+## Troubleshooting
+
+### Model Not Found
+
+```
+Error: model 'invalid-model' not found
+```
+
+**Solution**: Check the model name and tag. Browse available models at [ollama.com/library](https://ollama.com/library)
+
+### Insufficient Disk Space
+
+```
+Error: no space left on device
+```
+
+**Solution**: Free up disk space or change the models directory:
+
+```bash
+OLLAMA_MODELS=/path/to/larger/disk ollama pull llama3.2
+```
+
+### Network Timeout
+
+```
+Error: context deadline exceeded
+```
+
+**Solution**: Check your internet connection and try again. The download will resume automatically.
+
+### Registry Authentication
+
+For private registries requiring authentication:
+
+```bash
+# Sign in first
+ollama signin
+
+# Then pull
+ollama pull registry.ollama.ai/private/model
+```
+
+## Related Commands
+
+- [`ollama run`](/cli/run) - Run a pulled model
+- [`ollama list`](/cli/list) - List all pulled models
+- [`ollama show`](/cli/show) - Show details about a pulled model
+- [`ollama rm`](/cli/rm) - Remove a pulled model
+- [`ollama push`](/cli/push) - Push a model to a registry

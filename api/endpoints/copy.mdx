@@ -1,0 +1,170 @@
+---
+title: 'POST /api/copy'
+description: 'Copy a model'
+---
+
+Create a copy of an existing model with a new name. This creates a new model reference without duplicating the underlying model files.
+
+## Request
+
+### Endpoint
+
+```
+POST /api/copy
+```
+
+### Request Body
+
+<ParamField path="source" type="string" required>
+  Name of the source model to copy from
+</ParamField>
+
+<ParamField path="destination" type="string" required>
+  Name for the destination model (the copy)
+</ParamField>
+
+## Response
+
+Returns HTTP status code 200 on success with no response body.
+
+## Examples
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:11434/api/copy -d '{
+  "source": "llama3.2",
+  "destination": "my-llama"
+}'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:11434/api/copy',
+    json={
+        'source': 'llama3.2',
+        'destination': 'my-llama'
+    }
+)
+
+if response.status_code == 200:
+    print("Model copied successfully")
+else:
+    print(f"Error: {response.json()['error']}")
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:11434/api/copy', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    source: 'llama3.2',
+    destination: 'my-llama'
+  })
+});
+
+if (response.ok) {
+  console.log('Model copied successfully');
+} else {
+  const error = await response.json();
+  console.error(`Error: ${error.error}`);
+}
+```
+
+</CodeGroup>
+
+### Copy with Namespace
+
+```bash
+curl http://localhost:11434/api/copy -d '{
+  "source": "llama3.2:latest",
+  "destination": "myuser/llama3.2:custom"
+}'
+```
+
+### Verify Copy (Python Example)
+
+```python
+import requests
+
+# Copy the model
+response = requests.post(
+    'http://localhost:11434/api/copy',
+    json={
+        'source': 'llama3.2',
+        'destination': 'backup/llama3.2'
+    }
+)
+
+if response.status_code == 200:
+    # Verify it exists
+    models = requests.get('http://localhost:11434/api/tags').json()
+    model_names = [m['name'] for m in models['models']]
+    
+    if 'backup/llama3.2' in model_names:
+        print("Copy verified successfully")
+```
+
+## Error Responses
+
+<ResponseField name="error" type="string">
+  Description of the error
+</ResponseField>
+
+### Common Errors
+
+- **400 Bad Request**: Invalid source or destination name
+- **404 Not Found**: Source model not found
+- **500 Internal Server Error**: Error creating model copy
+
+### Example Error Response
+
+```json
+{
+  "error": "model 'nonexistent-model' not found"
+}
+```
+
+## Use Cases
+
+### Create Backup Before Modification
+
+```bash
+# Create a backup
+curl http://localhost:11434/api/copy -d '{
+  "source": "llama3.2",
+  "destination": "llama3.2-backup"
+}'
+
+# Now safe to modify the original
+curl http://localhost:11434/api/create -d '{
+  "model": "llama3.2",
+  "from": "llama3.2",
+  "system": "New system prompt"
+}'
+```
+
+### Create Named Versions
+
+```bash
+# Create version snapshots
+curl http://localhost:11434/api/copy -d '{
+  "source": "my-model",
+  "destination": "my-model:v1.0"
+}'
+
+curl http://localhost:11434/api/copy -d '{
+  "source": "my-model",
+  "destination": "my-model:v1.1"
+}'
+```
+
+<Note>
+Copying a model creates a new manifest entry but does not duplicate the underlying model files. Both models share the same layers, saving disk space.
+</Note>
+
+<Note>
+If the destination model already exists, it will be overwritten without warning.
+</Note>

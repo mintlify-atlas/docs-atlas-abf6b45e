@@ -1,0 +1,356 @@
+---
+title: IDE Extensions
+description: Native Ollama integrations for popular development environments
+icon: window
+---
+
+Ollama integrates natively with popular IDEs and code editors, providing AI assistance directly in your development environment.
+
+## VS Code
+
+Microsoft's Visual Studio Code has built-in support for Ollama through the Copilot sidebar.
+
+### Setup
+
+<Steps>
+  <Step title="Open Copilot sidebar">
+    Click the Copilot icon in the top-right window
+    <div style={{ display: "flex", justifyContent: "center", margin: "1rem 0" }}>
+      <img
+        src="/images/vscode-sidebar.png"
+        alt="VS Code chat Sidebar"
+        width="75%"
+      />
+    </div>
+  </Step>
+  <Step title="Select model dropdown">
+    Click **Manage models**
+    <div style={{ display: "flex", justifyContent: "center", margin: "1rem 0" }}>
+      <img
+        src="/images/vscode-models.png"
+        alt="VS Code model picker"
+        width="75%"
+      />
+    </div>
+  </Step>
+  <Step title="Add Ollama provider">
+    Enter **Ollama** under **Provider Dropdown** and select your models
+    <div style={{ display: "flex", justifyContent: "center", margin: "1rem 0" }}>
+      <img
+        src="/images/vscode-model-options.png"
+        alt="VS Code model options dropdown"
+        width="75%"
+      />
+    </div>
+  </Step>
+</Steps>
+
+### Recommended Models for VS Code
+
+- `qwen3` — Efficient all-purpose model
+- `qwen3-coder:480b-cloud` — Advanced cloud code generation
+- `glm-4.7` — Local reasoning model
+
+### Tips
+
+<Tip>
+  Use **cloud models** for large context windows when working with entire files or projects.
+</Tip>
+
+---
+
+## JetBrains IDEs
+
+IntelliJ IDEA, PyCharm, WebStorm, and other JetBrains IDEs support Ollama with an AI subscription.
+
+<Note>
+  To use Ollama with JetBrains IDEs, you need a [JetBrains AI Subscription](https://www.jetbrains.com/ai-ides/buy/?section=personal&billing=yearly).
+</Note>
+
+### Setup (IntelliJ Example)
+
+<Steps>
+  <Step title="Open AI chat">
+    Click the **chat icon** in the right sidebar
+    <div style={{ display: "flex", justifyContent: "center", margin: "1rem 0" }}>
+      <img
+        src="/images/intellij-chat-sidebar.png"
+        alt="IntelliJ Sidebar Chat"
+        width="50%"
+      />
+    </div>
+  </Step>
+  <Step title="Set up local models">
+    Select the **current model** → **Set up Local Models**
+    <div style={{ display: "flex", justifyContent: "center", margin: "1rem 0" }}>
+      <img
+        src="/images/intellij-current-model.png"
+        alt="IntelliJ model selector"
+        width="50%"
+      />
+    </div>
+  </Step>
+  <Step title="Configure Ollama">
+    Under **Third Party AI Providers**, choose **Ollama**
+  </Step>
+  <Step title="Set host URL">
+    Confirm **Host URL** is `http://localhost:11434` → **Ok**
+  </Step>
+  <Step title="Select a model">
+    Choose a model under **Local models by Ollama**
+    <div style={{ display: "flex", justifyContent: "center", margin: "1rem 0" }}>
+      <img
+        src="/images/intellij-local-models.png"
+        alt="IntelliJ local models list"
+        width="50%"
+      />
+    </div>
+  </Step>
+</Steps>
+
+### Supported JetBrains IDEs
+
+<CardGroup cols={2}>
+  <Card title="IntelliJ IDEA" icon="code">
+    Java, Kotlin, Scala development
+  </Card>
+  <Card title="PyCharm" icon="python">
+    Python development
+  </Card>
+  <Card title="WebStorm" icon="javascript">
+    JavaScript, TypeScript, Node.js
+  </Card>
+  <Card title="PhpStorm" icon="php">
+    PHP development
+  </Card>
+  <Card title="GoLand" icon="golang">
+    Go development
+  </Card>
+  <Card title="RubyMine" icon="ruby">
+    Ruby development
+  </Card>
+</CardGroup>
+
+The setup process is identical for all JetBrains IDEs.
+
+---
+
+## Zed
+
+Zed is a high-performance, collaborative code editor with native Ollama support.
+
+### Setup
+
+<Steps>
+  <Step title="Open assistant settings">
+    Click the **star icon** in the bottom-right corner → **Configure**
+    <div style={{ display: "flex", justifyContent: "center", margin: "1rem 0" }}>
+      <img
+        src="/images/zed-settings.png"
+        alt="Zed settings icon"
+        width="50%"
+      />
+    </div>
+  </Step>
+  <Step title="Select Ollama provider">
+    Under **LLM Providers**, choose **Ollama**
+  </Step>
+  <Step title="Connect to Ollama">
+    Confirm **Host URL** is `http://localhost:11434` → **Connect**
+  </Step>
+  <Step title="Select a model">
+    Choose a model from the **Ollama** dropdown
+    <div style={{ display: "flex", justifyContent: "center", margin: "1rem 0" }}>
+      <img
+        src="/images/zed-ollama-dropdown.png"
+        alt="Zed Ollama model dropdown"
+        width="50%"
+      />
+    </div>
+  </Step>
+</Steps>
+
+### Connecting Zed to ollama.com
+
+<Steps>
+  <Step title="Create API key">
+    Create an [API key](https://ollama.com/settings/keys) on ollama.com
+  </Step>
+  <Step title="Open Zed settings">
+    Click **star icon** → **Configure**
+  </Step>
+  <Step title="Set API URL">
+    Under **LLM Providers** → **Ollama**, set **API URL** to `https://ollama.com`
+  </Step>
+  <Step title="Add API key">
+    Enter your API key from step 1
+  </Step>
+</Steps>
+
+---
+
+## Cline
+
+Cline is a VS Code extension that provides an autonomous coding agent interface.
+
+### Setup
+
+<Steps>
+  <Step title="Install Cline">
+    Install [Cline](https://docs.cline.bot/getting-started/installing-cline) from the VS Code marketplace
+  </Step>
+  <Step title="Open Cline settings">
+    Open Cline settings → **API Configuration**
+  </Step>
+  <Step title="Set provider to Ollama">
+    Set **API Provider** to **Ollama**
+  </Step>
+  <Step title="Select a model">
+    Choose a model or type one (e.g., `qwen3`)
+  </Step>
+  <Step title="Update context window">
+    Set **Context Window** to at least **32K tokens**
+  </Step>
+</Steps>
+
+<div style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
+  <img
+    src="/images/cline-settings.png"
+    alt="Cline settings showing Ollama configuration"
+    width="50%"
+  />
+</div>
+
+<Note>
+  Coding tools require a **larger context window** (at least 32K tokens). See [Context Length](/context-length) for configuration.
+</Note>
+
+### Recommended Models for Cline
+
+- `qwen3-coder:480b-cloud` — Advanced code generation
+- `deepseek-v3.1:671b-cloud` — Massive reasoning model
+- `glm-4.7` — Local reasoning and coding
+
+### Connecting Cline to ollama.com
+
+<Steps>
+  <Step title="Create API key">
+    Create an [API key](https://ollama.com/settings/keys) on ollama.com
+  </Step>
+  <Step title="Enable custom base URL">
+    In Cline settings, click **Use custom base URL**
+  </Step>
+  <Step title="Set URL">
+    Set base URL to `https://ollama.com`
+  </Step>
+  <Step title="Add API key">
+    Enter your Ollama API key
+  </Step>
+</Steps>
+
+---
+
+## Other Extensions
+
+### Continue
+
+[Continue](https://github.com/continuedev/continue) is an open-source AI code assistant for any IDE.
+
+**Setup**: Add Ollama as a provider in Continue's settings.
+
+### Cline CLI
+
+Cline also provides a [CLI tool](https://cline.bot/cli) that can be launched with:
+
+```bash
+ollama launch cline
+```
+
+See the [Integrations Overview](/integrations/overview) for details.
+
+---
+
+## General Tips
+
+<CardGroup cols={2}>
+  <Card title="Use Cloud Models" icon="cloud">
+    For large codebases, use cloud models with 100k+ context windows
+  </Card>
+  <Card title="Increase Context" icon="brain">
+    Adjust context length for local models: [Context Length](/context-length)
+  </Card>
+  <Card title="Model Selection" icon="cubes">
+    Choose specialized code models like `qwen3-coder` for best results
+  </Card>
+  <Card title="Performance" icon="gauge">
+    Smaller models (8B) are faster but less capable; balance based on needs
+  </Card>
+</CardGroup>
+
+## Context Window Configuration
+
+Most IDE integrations work best with **large context windows** (32k-128k tokens).
+
+### For Local Models
+
+```bash
+ollama run qwen3-coder /set parameter num_ctx 65536
+```
+
+### For Cloud Models
+
+Cloud models automatically use their maximum context window.
+
+<Tip>
+  See [Context Length](/context-length) for detailed configuration.
+</Tip>
+
+## Troubleshooting
+
+### Connection Failed
+
+Verify Ollama is running:
+
+```bash
+ollama list
+```
+
+### Models Not Appearing
+
+Ensure models are pulled:
+
+```bash
+ollama pull qwen3
+ollama list
+```
+
+### Slow Performance
+
+- Use cloud models for large context
+- Use smaller local models for quick tasks
+- Ensure sufficient VRAM for local models
+
+### IDE Can't Find Ollama
+
+Check the host URL is correct:
+
+- Local: `http://localhost:11434`
+- Remote: Your server's URL
+- Cloud: `https://ollama.com`
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Try Coding Agents" icon="robot" href="/integrations/overview#coding-agents">
+    Explore autonomous coding agents
+  </Card>
+  <Card title="API Documentation" icon="code" href="/api/introduction">
+    Learn about Ollama's APIs
+  </Card>
+  <Card title="Context Length" icon="brain" href="/context-length">
+    Configure model context windows
+  </Card>
+  <Card title="Model Library" icon="cubes" href="https://ollama.com/library">
+    Browse available models
+  </Card>
+</CardGroup>

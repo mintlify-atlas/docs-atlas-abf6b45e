@@ -1,0 +1,314 @@
+---
+title: 'ollama ps'
+description: 'List currently running models'
+icon: 'table'
+---
+
+## Synopsis
+
+```bash
+ollama ps [MODEL_PREFIX]
+```
+
+## Description
+
+The `ps` command displays all models currently loaded in memory. It shows:
+- Model names
+- Model IDs (digest)
+- Memory usage
+- Processor allocation (CPU/GPU split)
+- Context window size
+- Time until automatic unload
+
+This is useful for monitoring resource usage and seeing which models are ready to serve requests without loading time.
+
+## Arguments
+
+<ParamField path="MODEL_PREFIX" type="string">
+  Optional prefix to filter models. Shows only running models whose names start with this prefix.
+  
+  ```bash
+  ollama ps llama  # Show only running llama models
+  ```
+</ParamField>
+
+## Options
+
+The `ps` command has no flags or options.
+
+## Examples
+
+### List All Running Models
+
+Show all currently loaded models:
+
+```bash
+ollama ps
+```
+
+Output:
+```
+NAME                ID          SIZE     PROCESSOR         CONTEXT    UNTIL
+llama3.2:latest     8934d96d    4.7 GB   100% GPU          2048       4 minutes
+mistral:7b          2e0493f6    4.1 GB   45%/55% CPU/GPU   4096       2 minutes
+```
+
+### Filter by Prefix
+
+Show only running models starting with "llama":
+
+```bash
+ollama ps llama
+```
+
+Output:
+```
+NAME                ID          SIZE     PROCESSOR         CONTEXT    UNTIL
+llama3.2:latest     8934d96d    4.7 GB   100% GPU          2048       4 minutes
+```
+
+### No Models Running
+
+When no models are loaded:
+
+```bash
+ollama ps
+```
+
+Output:
+```
+NAME    ID    SIZE    PROCESSOR    CONTEXT    UNTIL
+```
+
+## Output Format
+
+The output is formatted as a table with these columns:
+
+<ParamField path="NAME" type="string">
+  Full model name including tag (e.g., `llama3.2:latest`)
+</ParamField>
+
+<ParamField path="ID" type="string">
+  First 12 characters of the model's SHA256 digest
+</ParamField>
+
+<ParamField path="SIZE" type="string">
+  Total memory used by the model (including model weights, KV cache, etc.)
+</ParamField>
+
+<ParamField path="PROCESSOR" type="string">
+  Where the model is running:
+  - `100% GPU` - Fully on GPU
+  - `100% CPU` - Fully on CPU
+  - `45%/55% CPU/GPU` - Split between CPU and GPU
+  - `Unknown` - Cannot determine allocation
+</ParamField>
+
+<ParamField path="CONTEXT" type="integer">
+  Current context window size in tokens
+</ParamField>
+
+<ParamField path="UNTIL" type="string">
+  Time until the model will be automatically unloaded from memory:
+  - "4 minutes"
+  - "10 seconds"
+  - "Never" - Configured to stay loaded indefinitely
+  - "Stopping..." - Currently being unloaded
+</ParamField>
+
+## Understanding Processor Allocation
+
+The `PROCESSOR` column shows how model layers are distributed:
+
+### 100% GPU
+```
+PROCESSOR: 100% GPU
+```
+All model layers are on the GPU. Best performance for inference.
+
+### 100% CPU
+```
+PROCESSOR: 100% CPU
+```
+All model layers are on the CPU. Slower but works without a GPU.
+
+### Split CPU/GPU
+```
+PROCESSOR: 45%/55% CPU/GPU
+```
+Model layers are split between CPU and GPU. Common when:
+- GPU VRAM is insufficient for the entire model
+- Multiple models are loaded simultaneously
+- GPU is being shared with other applications
+
+### Unknown
+```
+PROCESSOR: Unknown
+```
+Processor allocation cannot be determined.
+
+## Model Lifecycle
+
+Models go through these states:
+
+1. **Not loaded**: Model exists but is not in memory
+2. **Loading**: Model is being loaded into memory
+3. **Running**: Model is loaded and ready (shown by `ollama ps`)
+4. **Stopping**: Model is being unloaded (shows "Stopping...")
+5. **Unloaded**: Model removed from memory
+
+## Keep-Alive Timer
+
+The `UNTIL` column shows when a model will be automatically unloaded:
+
+- Timer resets each time the model is used
+- Default is typically 5 minutes of inactivity
+- Can be configured per-request or server-wide
+- "Never" means the model stays loaded until manually stopped
+
+## Memory Management
+
+Monitor total memory usage:
+
+```bash
+# Check GPU memory
+nvidia-smi
+
+# Check system memory
+free -h
+
+# Calculate total Ollama memory
+ollama ps | awk 'NR>1 {gsub(/[^0-9.]/,"",$3); sum+=$3} END {print sum " GB"}'
+```
+
+## Scripting Usage
+
+Use in scripts and automation:
+
+```bash
+# Check if a model is running
+if ollama ps | grep -q "llama3.2:latest"; then
+    echo "Model is running"
+else
+    echo "Model is not loaded"
+fi
+
+# Count running models
+RUNNING_COUNT=$(ollama ps | tail -n +2 | wc -l)
+echo "$RUNNING_COUNT models running"
+
+# Get memory usage of a specific model
+MEMORY=$(ollama ps | grep "llama3.2" | awk '{print $3, $4}')
+echo "llama3.2 using: $MEMORY"
+
+# List models about to unload (< 1 minute)
+ollama ps | grep "second"
+```
+
+## Common Patterns
+
+### Find GPU-Only Models
+
+Find models running entirely on GPU:
+
+```bash
+ollama ps | grep "100% GPU"
+```
+
+### Find Large Memory Users
+
+Find models using more than 5GB:
+
+```bash
+ollama ps | awk '$3 ~ /GB$/ && $3+0 > 5 {print $1, $3}'
+```
+
+### Monitor Unload Times
+
+Watch models about to be unloaded:
+
+```bash
+watch -n 5 'ollama ps'
+```
+
+## Performance Considerations
+
+### GPU vs CPU Performance
+
+| Allocation | Typical Speed | Use Case |
+|------------|---------------|----------|
+| 100% GPU | 10-50 tok/s | Best for most workloads |
+| CPU/GPU Split | 5-20 tok/s | Large models, limited VRAM |
+| 100% CPU | 1-5 tok/s | No GPU, or GPU fully utilized |
+
+### Multiple Models
+
+When running multiple models:
+- Total memory is sum of all models
+- Each model competes for resources
+- Consider adjusting `OLLAMA_MAX_LOADED_MODELS`
+
+## Environment Variables
+
+<ParamField path="OLLAMA_HOST" type="string" default="http://127.0.0.1:11434">
+  Ollama server address to query for running models
+</ParamField>
+
+<ParamField path="OLLAMA_KEEP_ALIVE" type="duration" default="5m">
+  Server-wide default keep-alive time (affects UNTIL column)
+</ParamField>
+
+<ParamField path="OLLAMA_MAX_LOADED_MODELS" type="integer" default="1">
+  Maximum number of models that can be loaded simultaneously
+</ParamField>
+
+## Exit Codes
+
+- `0` - Success
+- `1` - Error (server not running, etc.)
+
+## Troubleshooting
+
+### Server Not Running
+
+```
+Error: could not connect to ollama server
+```
+
+**Solution**: Start the Ollama server:
+
+```bash
+ollama serve
+```
+
+### No Models Showing
+
+If no models appear, none are currently loaded. Run a model to load it:
+
+```bash
+ollama run llama3.2 "Hello"
+ollama ps
+```
+
+### Model Shows "Stopping..."
+
+The model is being unloaded. This is normal when:
+- Keep-alive timer expired
+- You ran `ollama stop MODEL`
+- Server is shutting down
+- Another model needs the memory
+
+## Comparison with Other Commands
+
+| Command | Purpose |
+|---------|----------|
+| `ollama ps` | Show running models in memory |
+| `ollama list` | Show all available models (not just running) |
+| `ollama show MODEL` | Show detailed info about one model |
+
+## Related Commands
+
+- [`ollama list`](/cli/list) - List all available models
+- [`ollama stop`](/cli/stop) - Stop a running model
+- [`ollama run`](/cli/run) - Load and run a model
+- [`ollama serve`](/cli/serve) - Configure server memory settings

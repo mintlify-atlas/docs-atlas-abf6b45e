@@ -1,0 +1,195 @@
+---
+title: Welcome to Ollama
+description: Run large language models locally with ease
+---
+
+<img
+  className="block dark:hidden"
+  src="https://github.com/ollama/ollama/assets/3325447/0d0b44e2-8f4a-4e99-9b52-a5c1c741c8f7"
+  alt="Ollama Logo"
+  width="200"
+/>
+<img
+  className="hidden dark:block"
+  src="https://github.com/ollama/ollama/assets/3325447/0d0b44e2-8f4a-4e99-9b52-a5c1c741c8f7"
+  alt="Ollama Logo"
+  width="200"
+/>
+
+# Start building with open models
+
+Ollama makes it easy to get up and running with large language models locally. Download, run, and manage LLMs on your own hardware with a simple command-line interface.
+
+<CardGroup cols={2}>
+  <Card
+    title="Quick Start"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Get Ollama running in minutes with your first model
+  </Card>
+  <Card
+    title="Installation"
+    icon="download"
+    href="/installation"
+  >
+    Install Ollama on macOS, Linux, Windows, or Docker
+  </Card>
+  <Card
+    title="CLI Reference"
+    icon="terminal"
+    href="/cli"
+  >
+    Complete command-line interface documentation
+  </Card>
+  <Card
+    title="REST API"
+    icon="code"
+    href="/api"
+  >
+    Integrate Ollama into your applications
+  </Card>
+</CardGroup>
+
+## Key Features
+
+<CardGroup cols={3}>
+  <Card title="Local & Private" icon="lock">
+    Run models entirely on your own hardware with no data leaving your machine
+  </Card>
+  <Card title="Easy to Use" icon="wand-magic-sparkles">
+    Simple CLI commands to pull, run, and manage models
+  </Card>
+  <Card title="Model Library" icon="books">
+    Access hundreds of open source models from ollama.com/library
+  </Card>
+  <Card title="REST API" icon="network-wired">
+    Integrate with applications using the built-in HTTP API
+  </Card>
+  <Card title="Multiple Backends" icon="server">
+    Optimized performance with llama.cpp for CPU and GPU acceleration
+  </Card>
+  <Card title="Cross-Platform" icon="laptop">
+    Works on macOS, Linux, Windows, and Docker
+  </Card>
+</CardGroup>
+
+## Popular Models
+
+Ollama supports a wide range of open source models:
+
+- **Gemma 3** - Google's latest language model family
+- **Llama 3.2** - Meta's powerful language model
+- **Mistral** - High-performance efficient models
+- **Phi-3** - Microsoft's compact but capable models
+- **DeepSeek R1** - Advanced reasoning models
+- **Qwen** - Alibaba's multilingual models
+
+[Browse all models →](https://ollama.com/library)
+
+## Use Cases
+
+<Steps>
+  <Step title="Chat with Models">
+    Run interactive chat sessions with language models directly in your terminal
+    ```bash
+    ollama run gemma3
+    ```
+  </Step>
+  <Step title="Integrate with Applications">
+    Use the REST API to add AI capabilities to your applications
+    ```bash
+    curl http://localhost:11434/api/chat -d '{
+      "model": "gemma3",
+      "messages": [{"role": "user", "content": "Hello!"}]
+    }'
+    ```
+  </Step>
+  <Step title="Customize Models">
+    Create custom models with specific instructions using Modelfiles
+    ```bash
+    ollama create mymodel -f Modelfile
+    ```
+  </Step>
+</Steps>
+
+## Client Libraries
+
+Integrate Ollama with your favorite programming language:
+
+<CardGroup cols={2}>
+  <Card title="Python" icon="python">
+    ```bash
+    pip install ollama
+    ```
+    [ollama-python →](https://github.com/ollama/ollama-python)
+  </Card>
+  <Card title="JavaScript" icon="js">
+    ```bash
+    npm i ollama
+    ```
+    [ollama-js →](https://github.com/ollama/ollama-js)
+  </Card>
+</CardGroup>
+
+## Community & Support
+
+<CardGroup cols={3}>
+  <Card title="Discord" icon="discord" href="https://discord.gg/ollama">
+    Join the Ollama community
+  </Card>
+  <Card title="Twitter/X" icon="twitter" href="https://x.com/ollama">
+    Follow for updates
+  </Card>
+  <Card title="Reddit" icon="reddit" href="https://reddit.com/r/ollama">
+    Discuss with users
+  </Card>
+</CardGroup>
+
+## Example: Quick Chat
+
+```bash
+# Pull and run a model
+ollama run gemma3
+
+>>> Send a message (/? for help)
+```
+
+The model will be downloaded automatically on first run, and you can start chatting immediately.
+
+<Note>
+  Ollama runs a local API server on port 11434 by default. The server starts automatically when you run a model.
+</Note>
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card
+    title="Follow the Quickstart"
+    icon="play"
+    href="/quickstart"
+  >
+    Get your first model running in under 5 minutes
+  </Card>
+  <Card
+    title="Explore the Model Library"
+    icon="magnifying-glass"
+    href="https://ollama.com/library"
+  >
+    Browse hundreds of available models
+  </Card>
+  <Card
+    title="Read the API Docs"
+    icon="book"
+    href="/api"
+  >
+    Learn how to integrate Ollama into your applications
+  </Card>
+  <Card
+    title="Create Custom Models"
+    icon="palette"
+    href="/modelfile"
+  >
+    Customize models with Modelfiles
+  </Card>
+</CardGroup>

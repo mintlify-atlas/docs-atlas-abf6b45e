@@ -1,0 +1,392 @@
+---
+title: Troubleshooting
+description: How to troubleshoot issues encountered with Ollama
+---
+
+## Viewing Logs
+
+One of the best ways to figure out what happened is to take a look at the logs.
+
+<Tabs>
+  <Tab title="macOS">
+    Run the following command:
+
+    ```shell
+    cat ~/.ollama/logs/server.log
+    ```
+  </Tab>
+  <Tab title="Linux">
+    On Linux systems with systemd:
+
+    ```shell
+    journalctl -u ollama --no-pager --follow --pager-end
+    ```
+  </Tab>
+  <Tab title="Docker">
+    When you run Ollama in a container, the logs go to stdout/stderr:
+
+    ```shell
+    docker logs <container-name>
+    ```
+
+    <Note>
+      Use `docker ps` to find the container name.
+    </Note>
+  </Tab>
+  <Tab title="Windows">
+    There are a few different locations in Windows. You can view them in the explorer window by pressing `Win+R` and typing:
+
+    **View logs:**
+    ```
+    explorer %LOCALAPPDATA%\Ollama
+    ```
+
+    The most recent server logs will be in `server.log` and older logs will be in `server-#.log`
+
+    **Browse binaries:**
+    ```
+    explorer %LOCALAPPDATA%\Programs\Ollama
+    ```
+
+    **Browse models and configuration:**
+    ```
+    explorer %HOMEPATH%\.ollama
+    ```
+
+    **Temporary executable files:**
+    ```
+    explorer %TEMP%
+    ```
+
+    Look for one or more `ollama*` directories.
+  </Tab>
+  <Tab title="Manual serve">
+    If manually running `ollama serve` in a terminal, the logs will be displayed on that terminal.
+  </Tab>
+</Tabs>
+
+### Enabling Debug Logging
+
+<Tabs>
+  <Tab title="Windows">
+    To enable additional debug logging:
+
+    <Steps>
+      <Step title="Quit Ollama">
+        First **Quit the running app from the tray menu**.
+      </Step>
+      <Step title="Enable debug mode">
+        In a PowerShell terminal, run:
+
+        ```powershell
+        $env:OLLAMA_DEBUG="1"
+        & "ollama app.exe"
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="macOS / Linux">
+    Set the `OLLAMA_DEBUG` environment variable before starting Ollama:
+
+    ```shell
+    OLLAMA_DEBUG=1 ollama serve
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+  Join the [Discord](https://discord.gg/ollama) for help interpreting the logs.
+</Info>
+
+## LLM Libraries
+
+Ollama includes multiple LLM libraries compiled for different GPUs and CPU vector features. Ollama tries to pick the best one based on the capabilities of your system.
+
+In the server log, you will see a message that looks something like this:
+
+```
+Dynamic LLM libraries [rocm_v6 cpu cpu_avx cpu_avx2 cuda_v11 rocm_v5]
+```
+
+### Overriding Library Selection
+
+If autodetection has problems, or you run into issues (e.g., crashes in your GPU), you can force a specific LLM library.
+
+<Warning>
+  This is an experimental feature. Use with caution.
+</Warning>
+
+Performance ranking: `cpu_avx2` (best) > `cpu_avx` > `cpu` (slowest but most compatible)
+
+```shell
+OLLAMA_LLM_LIBRARY="cpu_avx2" ollama serve
+```
+
+<Note>
+  Rosetta emulation under macOS will work with the `cpu` library.
+</Note>
+
+### Checking CPU Features
+
+You can see what features your CPU has:
+
+```shell
+cat /proc/cpuinfo | grep flags | head -1
+```
+
+## Installing Older or Pre-release Versions on Linux
+
+If you run into problems on Linux and want to install an older version, or you'd like to try out a pre-release before it's officially released, you can tell the install script which version to install.
+
+```shell
+curl -fsSL https://ollama.com/install.sh | OLLAMA_VERSION=0.5.7 sh
+```
+
+## Linux tmp noexec
+
+If your system is configured with the "noexec" flag where Ollama stores its temporary executable files, you can specify an alternate location by setting `OLLAMA_TMPDIR` to a location writable by the user ollama runs as.
+
+```shell
+OLLAMA_TMPDIR=/usr/share/ollama/ ollama serve
+```
+
+## Linux Docker
+
+If Ollama initially works on the GPU in a docker container, but then switches to running on CPU after some period of time with errors in the server log reporting GPU discovery failures, this can be resolved by disabling systemd cgroup management in Docker.
+
+Edit `/etc/docker/daemon.json` on the host and add `"exec-opts": ["native.cgroupdriver=cgroupfs"]` to the docker configuration:
+
+```json
+{
+  "exec-opts": ["native.cgroupdriver=cgroupfs"]
+}
+```
+
+## NVIDIA GPU Discovery
+
+When Ollama starts up, it takes inventory of the GPUs present in the system to determine compatibility and how much VRAM is available. Sometimes this discovery can fail to find your GPUs.
+
+<Tip>
+  In general, running the **latest driver** will yield the best results.
+</Tip>
+
+### Linux NVIDIA Troubleshooting
+
+<Steps>
+  <Step title="Verify container runtime (if using Docker)">
+    If you are using a container to run Ollama, make sure you've set up the container runtime first as described in the [Docker documentation](./docker).
+
+    Test the container runtime:
+
+    ```shell
+    docker run --gpus all ubuntu nvidia-smi
+    ```
+
+    <Warning>
+      If this doesn't work, Ollama won't be able to see your NVIDIA GPU.
+    </Warning>
+  </Step>
+  <Step title="Check if UVM driver is loaded">
+    ```shell
+    sudo nvidia-modprobe -u
+    ```
+  </Step>
+  <Step title="Try reloading the nvidia_uvm driver">
+    ```shell
+    sudo rmmod nvidia_uvm
+    sudo modprobe nvidia_uvm
+    ```
+  </Step>
+  <Step title="Try rebooting">
+    Sometimes a simple reboot can resolve GPU discovery issues.
+  </Step>
+  <Step title="Update NVIDIA drivers">
+    Make sure you're running the latest NVIDIA drivers.
+  </Step>
+</Steps>
+
+### Common Error Codes
+
+When you check the server logs, GPU initialization issues can show up as various error codes:
+
+- **3** - Not initialized
+- **46** - Device unavailable
+- **100** - No device
+- **999** - Unknown
+
+### Gathering Additional Information
+
+If none of the above resolve the problem:
+
+<Steps>
+  <Step title="Enable detailed CUDA logging">
+    Set `CUDA_ERROR_LEVEL=50` and try again to get more diagnostic logs:
+
+    ```shell
+    CUDA_ERROR_LEVEL=50 ollama serve
+    ```
+  </Step>
+  <Step title="Check dmesg for errors">
+    ```shell
+    sudo dmesg | grep -i nvrm
+    sudo dmesg | grep -i nvidia
+    ```
+  </Step>
+  <Step title="File an issue">
+    Gather the logs and error messages and file an issue on the [Ollama GitHub repository](https://github.com/ollama/ollama/issues).
+  </Step>
+</Steps>
+
+## AMD GPU Discovery
+
+### Linux Permissions
+
+On Linux, AMD GPU access typically requires `video` and/or `render` group membership to access the `/dev/kfd` device.
+
+<Warning>
+  If permissions are not set up correctly, Ollama will detect this and report an error in the server log.
+</Warning>
+
+### Container Access
+
+When running in a container, in some Linux distributions and container runtimes, the ollama process may be unable to access the GPU.
+
+Use `ls -lnd /dev/kfd /dev/dri /dev/dri/*` on the host system to determine the **numeric** group IDs, and pass additional `--group-add ...` arguments to the container.
+
+**Example output:**
+```
+crw-rw---- 1 0  44 226,   0 Sep 16 16:55 /dev/dri/card0
+```
+
+In this case, the group ID is `44`, so you would run:
+
+```shell
+docker run -d --group-add 44 -p 11434:11434 ollama/ollama
+```
+
+### Troubleshooting AMD GPUs
+
+The following environment variables can help isolate failures:
+
+- `AMD_LOG_LEVEL=3` - Enable info log levels in the AMD HIP/ROCm libraries
+- `OLLAMA_DEBUG=1` - Additional information during GPU discovery
+
+**Check dmesg for errors:**
+
+```shell
+sudo dmesg | grep -i amdgpu
+sudo dmesg | grep -i kfd
+```
+
+## Multiple AMD GPUs
+
+If you experience gibberish responses when models load across multiple AMD GPUs on Linux, see the ROCm documentation:
+
+<Card
+  title="ROCm Multi-GPU Known Issues"
+  icon="link"
+  href="https://rocm.docs.amd.com/projects/radeon/en/latest/docs/install/native_linux/mgpu.html#mgpu-known-issues-and-limitations"
+>
+  AMD ROCm documentation on multi-GPU known issues and limitations
+</Card>
+
+## Windows Terminal Errors
+
+Older versions of Windows 10 (e.g., 21H1) are known to have a bug where the standard terminal program does not display control characters correctly.
+
+This can result in a long string of characters like `←[?25h←[?25l` being displayed, sometimes erroring with `The parameter is incorrect`.
+
+<Tip>
+  To resolve this problem, please **update to Windows 10 22H1 or newer**.
+</Tip>
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="Model fails to load or crashes">
+    **Possible causes:**
+    - Insufficient memory (RAM or VRAM)
+    - Corrupted model files
+    - Incompatible GPU drivers
+
+    **Solutions:**
+    - Check available memory with `ollama ps`
+    - Try a smaller model
+    - Re-download the model: `ollama pull <model>`
+    - Update GPU drivers to the latest version
+    - Check logs for specific error messages
+  </Accordion>
+
+  <Accordion title="Slow performance or inference">
+    **Possible causes:**
+    - Model running on CPU instead of GPU
+    - Insufficient context window
+    - Too many concurrent requests
+
+    **Solutions:**
+    - Verify GPU usage with `ollama ps`
+    - Check the `Processor` column shows GPU usage
+    - Adjust `OLLAMA_NUM_PARALLEL` to reduce concurrent requests
+    - Consider using a quantized model for better performance
+    - Enable Flash Attention: `OLLAMA_FLASH_ATTENTION=1`
+  </Accordion>
+
+  <Accordion title="Connection refused or server not responding">
+    **Possible causes:**
+    - Ollama server not running
+    - Firewall blocking connections
+    - Incorrect host/port configuration
+
+    **Solutions:**
+    - Start the server: `ollama serve`
+    - Check if server is running: `curl http://localhost:11434`
+    - Verify firewall settings allow port 11434
+    - Check `OLLAMA_HOST` environment variable
+  </Accordion>
+
+  <Accordion title="Model download fails or is very slow">
+    **Possible causes:**
+    - Network connectivity issues
+    - Proxy configuration needed
+    - Insufficient disk space
+
+    **Solutions:**
+    - Check network connection
+    - Configure proxy if needed (see FAQ)
+    - Verify sufficient disk space in models directory
+    - Try downloading again: `ollama pull <model>`
+  </Accordion>
+
+  <Accordion title="Out of memory errors">
+    **Possible causes:**
+    - Model too large for available memory
+    - Too many models loaded simultaneously
+    - Large context window
+
+    **Solutions:**
+    - Use a smaller or more quantized model
+    - Unload unused models: `ollama stop <model>`
+    - Reduce context window size
+    - Adjust `OLLAMA_MAX_LOADED_MODELS`
+    - Lower `OLLAMA_NUM_PARALLEL`
+  </Accordion>
+</AccordionGroup>
+
+## Getting Help
+
+If you're still experiencing issues after trying the troubleshooting steps above:
+
+<CardGroup cols={2}>
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/ollama">
+    Join our Discord server for community support and help interpreting logs
+  </Card>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/ollama/ollama/issues">
+    Report bugs and request features on GitHub
+  </Card>
+  <Card title="FAQ" icon="question" href="/faq">
+    Check the FAQ for answers to common questions
+  </Card>
+  <Card title="Documentation" icon="book" href="https://docs.ollama.com">
+    Browse the full documentation for detailed guides
+  </Card>
+</CardGroup>

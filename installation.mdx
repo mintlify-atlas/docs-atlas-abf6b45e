@@ -1,0 +1,599 @@
+---
+title: Installation
+description: Install Ollama on macOS, Windows, Linux, or Docker
+---
+
+# Installation
+
+Ollama is available for macOS, Windows, Linux, and as a Docker image. Choose your platform below.
+
+<CardGroup cols={2}>
+  <Card title="macOS" icon="apple">
+    Download the app or use the install script
+  </Card>
+  <Card title="Windows" icon="windows">
+    Download the installer or use PowerShell
+  </Card>
+  <Card title="Linux" icon="linux">
+    One-line install script with systemd support
+  </Card>
+  <Card title="Docker" icon="docker">
+    Official container images on Docker Hub
+  </Card>
+</CardGroup>
+
+## macOS
+
+### Download
+
+<Tabs>
+  <Tab title="Automated Install">
+    Install using the automated script:
+    
+    ```bash
+    curl -fsSL https://ollama.com/install.sh | sh
+    ```
+    
+    This will:
+    - Download Ollama for macOS
+    - Install to `/Applications/Ollama.app`
+    - Add `ollama` command to `/usr/local/bin`
+    - Start the Ollama server automatically
+  </Tab>
+  
+  <Tab title="Manual Download">
+    Download the macOS application directly:
+    
+    [Download Ollama.dmg →](https://ollama.com/download/Ollama.dmg)
+    
+    1. Open the downloaded `.dmg` file
+    2. Drag Ollama to your Applications folder
+    3. Launch Ollama from Applications
+    4. The `ollama` command will be available in Terminal
+  </Tab>
+</Tabs>
+
+### Requirements
+
+- macOS 11 Big Sur or later
+- Apple Silicon (M1/M2/M3) or Intel CPU
+- At least 8 GB RAM (16 GB recommended)
+
+<Note>
+  Apple Silicon Macs (M1/M2/M3) provide excellent performance with Metal acceleration.
+</Note>
+
+## Windows
+
+### Download
+
+<Tabs>
+  <Tab title="PowerShell Install">
+    Install using PowerShell:
+    
+    ```powershell
+    irm https://ollama.com/install.ps1 | iex
+    ```
+    
+    The installer will:
+    - Download Ollama for Windows
+    - Install to `%LOCALAPPDATA%\Programs\Ollama`
+    - Add to system PATH
+    - Start Ollama as a Windows service
+  </Tab>
+  
+  <Tab title="Manual Download">
+    Download the Windows installer:
+    
+    [Download OllamaSetup.exe →](https://ollama.com/download/OllamaSetup.exe)
+    
+    1. Run `OllamaSetup.exe`
+    2. Follow the installation wizard
+    3. Ollama will start automatically
+    4. Open Command Prompt or PowerShell and run `ollama`
+  </Tab>
+</Tabs>
+
+### Requirements
+
+- Windows 10 or later
+- At least 8 GB RAM (16 GB recommended)
+- NVIDIA GPU with CUDA support (optional, for GPU acceleration)
+- WSL2 support for GPU acceleration (if using NVIDIA GPU)
+
+<Warning>
+  WSL1 is not supported. Please upgrade to WSL2 if using Windows Subsystem for Linux.
+</Warning>
+
+### GPU Support on Windows
+
+For NVIDIA GPU acceleration:
+
+1. Install [NVIDIA CUDA drivers](https://developer.nvidia.com/cuda-downloads)
+2. Ensure WSL2 is enabled (for GPU passthrough)
+3. Ollama will automatically detect and use your GPU
+
+Verify GPU detection:
+```bash
+ollama run gemma3 --verbose
+```
+
+## Linux
+
+### Install Script
+
+The recommended way to install on Linux:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+<Accordion title="What the install script does">
+  The script automatically:
+  - Detects your Linux distribution and architecture
+  - Downloads the appropriate Ollama binary
+  - Installs to `/usr/local/bin/ollama`
+  - Creates an `ollama` system user
+  - Sets up systemd service for automatic startup
+  - Detects and installs GPU drivers if needed
+</Accordion>
+
+### Supported Distributions
+
+- Ubuntu 18.04+ (and derivatives like Pop!_OS)
+- Debian 10+
+- Fedora 38+
+- CentOS 7+
+- Red Hat Enterprise Linux 8+
+- Rocky Linux 8+
+- Arch Linux
+
+### Manual Installation
+
+<Steps>
+  <Step title="Download Ollama">
+    Download the binary for your architecture:
+    
+    ```bash
+    # For x86_64
+    sudo curl -L https://ollama.com/download/ollama-linux-amd64 -o /usr/local/bin/ollama
+    
+    # For ARM64
+    sudo curl -L https://ollama.com/download/ollama-linux-arm64 -o /usr/local/bin/ollama
+    
+    sudo chmod +x /usr/local/bin/ollama
+    ```
+  </Step>
+  
+  <Step title="Create System User">
+    Create a dedicated user for Ollama:
+    
+    ```bash
+    sudo useradd -r -s /bin/false -U -m -d /usr/share/ollama ollama
+    sudo usermod -a -G render ollama  # GPU access
+    sudo usermod -a -G video ollama   # GPU access
+    ```
+  </Step>
+  
+  <Step title="Create Systemd Service">
+    Create `/etc/systemd/system/ollama.service`:
+    
+    ```ini
+    [Unit]
+    Description=Ollama Service
+    After=network-online.target
+    
+    [Service]
+    ExecStart=/usr/local/bin/ollama serve
+    User=ollama
+    Group=ollama
+    Restart=always
+    RestartSec=3
+    Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+    
+    [Install]
+    WantedBy=default.target
+    ```
+    
+    Enable and start the service:
+    ```bash
+    sudo systemctl daemon-reload
+    sudo systemctl enable ollama
+    sudo systemctl start ollama
+    ```
+  </Step>
+</Steps>
+
+### GPU Support on Linux
+
+#### NVIDIA
+
+The install script automatically detects NVIDIA GPUs and installs CUDA drivers. For manual installation:
+
+```bash
+# Ubuntu/Debian
+sudo apt install nvidia-driver nvidia-cuda-toolkit
+
+# Fedora
+sudo dnf install nvidia-driver cuda
+
+# Arch
+sudo pacman -S nvidia cuda
+```
+
+Verify CUDA installation:
+```bash
+nvidia-smi
+```
+
+#### AMD (ROCm)
+
+For AMD GPUs with ROCm support:
+
+```bash
+# Install ROCm (Ubuntu/Debian)
+curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | sudo apt-key add -
+echo 'deb [arch=amd64] https://repo.radeon.com/rocm/apt/debian/ ubuntu main' | sudo tee /etc/apt/sources.list.d/rocm.list
+sudo apt update
+sudo apt install rocm-dkms
+```
+
+Ollama will automatically detect and use ROCm-compatible AMD GPUs.
+
+### Service Management
+
+```bash
+# Check status
+sudo systemctl status ollama
+
+# View logs
+sudo journalctl -u ollama -f
+
+# Restart service
+sudo systemctl restart ollama
+
+# Stop service
+sudo systemctl stop ollama
+```
+
+## Docker
+
+### Official Image
+
+Ollama provides official Docker images on Docker Hub:
+
+```bash
+docker pull ollama/ollama
+```
+
+### CPU Only
+
+Run Ollama with CPU only:
+
+```bash
+docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+```
+
+### NVIDIA GPU
+
+Run with NVIDIA GPU support:
+
+```bash
+docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+```
+
+<Note>
+  Requires [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) installed.
+</Note>
+
+### AMD GPU
+
+Run with AMD GPU support:
+
+```bash
+docker run -d --device /dev/kfd --device /dev/dri -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+```
+
+### Using the Container
+
+Run a model:
+
+```bash
+docker exec -it ollama ollama run gemma3
+```
+
+Access the API:
+
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "gemma3",
+  "prompt": "Why is the sky blue?"
+}'
+```
+
+### Docker Compose
+
+<CodeGroup>
+
+```yaml docker-compose.yml (CPU)
+version: '3'
+services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  ollama:
+```
+
+```yaml docker-compose.yml (NVIDIA GPU)
+version: '3'
+services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  ollama:
+```
+
+</CodeGroup>
+
+Start with:
+```bash
+docker compose up -d
+```
+
+## Package Managers
+
+Ollama is also available through various package managers:
+
+<Tabs>
+  <Tab title="Homebrew (macOS/Linux)">
+    ```bash
+    brew install ollama
+    ```
+  </Tab>
+  
+  <Tab title="Arch Linux (AUR)">
+    ```bash
+    yay -S ollama
+    # or
+    paru -S ollama
+    ```
+  </Tab>
+  
+  <Tab title="NixOS">
+    Add to your configuration:
+    ```nix
+    environment.systemPackages = [ pkgs.ollama ];
+    ```
+  </Tab>
+</Tabs>
+
+## Verify Installation
+
+After installation, verify Ollama is working:
+
+```bash
+# Check version
+ollama --version
+
+# Run a small test model
+ollama run gemma3:2b "Hello!"
+```
+
+If successful, you should see a response from the model.
+
+## Updating Ollama
+
+<Tabs>
+  <Tab title="macOS">
+    Download and install the latest version from [ollama.com/download](https://ollama.com/download), or:
+    ```bash
+    curl -fsSL https://ollama.com/install.sh | sh
+    ```
+  </Tab>
+  
+  <Tab title="Windows">
+    Download and run the latest installer from [ollama.com/download](https://ollama.com/download), or:
+    ```powershell
+    irm https://ollama.com/install.ps1 | iex
+    ```
+  </Tab>
+  
+  <Tab title="Linux">
+    Re-run the install script:
+    ```bash
+    curl -fsSL https://ollama.com/install.sh | sh
+    ```
+  </Tab>
+  
+  <Tab title="Docker">
+    Pull the latest image:
+    ```bash
+    docker pull ollama/ollama:latest
+    docker stop ollama
+    docker rm ollama
+    # Re-run your docker run command
+    ```
+  </Tab>
+</Tabs>
+
+## Uninstalling
+
+<AccordionGroup>
+  <Accordion title="macOS">
+    ```bash
+    # Stop the app
+    pkill Ollama
+    
+    # Remove application
+    rm -rf /Applications/Ollama.app
+    
+    # Remove CLI
+    sudo rm /usr/local/bin/ollama
+    
+    # Remove models and data
+    rm -rf ~/.ollama
+    ```
+  </Accordion>
+  
+  <Accordion title="Windows">
+    1. Open Settings → Apps → Installed Apps
+    2. Find "Ollama" and click Uninstall
+    3. Or run the uninstaller from `%LOCALAPPDATA%\Programs\Ollama`
+    
+    To remove models:
+    ```powershell
+    Remove-Item -Recurse -Force $env:USERPROFILE\.ollama
+    ```
+  </Accordion>
+  
+  <Accordion title="Linux">
+    ```bash
+    # Stop and disable service
+    sudo systemctl stop ollama
+    sudo systemctl disable ollama
+    
+    # Remove service file
+    sudo rm /etc/systemd/system/ollama.service
+    
+    # Remove binary
+    sudo rm /usr/local/bin/ollama
+    
+    # Remove user
+    sudo userdel ollama
+    
+    # Remove models and data
+    sudo rm -rf /usr/share/ollama
+    ```
+  </Accordion>
+  
+  <Accordion title="Docker">
+    ```bash
+    # Stop and remove container
+    docker stop ollama
+    docker rm ollama
+    
+    # Remove image
+    docker rmi ollama/ollama
+    
+    # Remove volume (models)
+    docker volume rm ollama
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Port 11434 already in use">
+    Another process is using the default port. Either:
+    - Stop the other process
+    - Change Ollama's port:
+      ```bash
+      export OLLAMA_HOST=0.0.0.0:11435
+      ollama serve
+      ```
+  </Accordion>
+  
+  <Accordion title="Permission denied (Linux)">
+    Ensure your user has access to GPU:
+    ```bash
+    sudo usermod -aG render $USER
+    sudo usermod -aG video $USER
+    # Log out and back in
+    ```
+  </Accordion>
+  
+  <Accordion title="GPU not detected">
+    - **NVIDIA**: Install CUDA drivers and run `nvidia-smi`
+    - **AMD**: Install ROCm and check `rocm-smi`
+    - **macOS**: Metal should work automatically on M1/M2/M3
+  </Accordion>
+  
+  <Accordion title="Out of disk space">
+    Models can be large. Remove unused models:
+    ```bash
+    ollama list
+    ollama rm <model-name>
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## System Requirements
+
+### Minimum Requirements
+
+- **RAM**: 8 GB (for 7B models)
+- **Disk Space**: 4 GB per model (average)
+- **OS**: macOS 11+, Windows 10+, or modern Linux
+
+### Recommended Requirements
+
+- **RAM**: 16 GB+ (for 13B models)
+- **Disk Space**: 50 GB+ for multiple models
+- **GPU**: NVIDIA with 8GB+ VRAM or Apple Silicon M1+
+- **OS**: Latest version for best performance
+
+### Model Size Guide
+
+| Model Size | RAM Required | GPU VRAM    | Disk Space |
+|------------|-------------|-------------|------------|
+| 2B-3B      | 4-8 GB      | 4 GB        | 2-4 GB     |
+| 7B-8B      | 8-16 GB     | 8 GB        | 4-6 GB     |
+| 13B        | 16-32 GB    | 16 GB       | 8-12 GB    |
+| 70B+       | 64+ GB      | 48+ GB      | 40+ GB     |
+
+<Note>
+  Quantized models (Q4, Q5) require less memory and perform nearly as well as full precision models.
+</Note>
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card
+    title="Quickstart Guide"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Run your first model in minutes
+  </Card>
+  <Card
+    title="CLI Reference"
+    icon="terminal"
+    href="/cli"
+  >
+    Learn all available commands
+  </Card>
+  <Card
+    title="Model Library"
+    icon="books"
+    href="https://ollama.com/library"
+  >
+    Browse available models
+  </Card>
+  <Card
+    title="API Documentation"
+    icon="code"
+    href="/api"
+  >
+    Integrate Ollama into your apps
+  </Card>
+</CardGroup>

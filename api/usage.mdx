@@ -1,0 +1,372 @@
+---
+title: 'Usage Metrics'
+description: 'Track token usage, timing, and performance metrics for Ollama API requests'
+---
+
+## Overview
+
+Ollama provides detailed usage metrics for every generation request. These metrics help you monitor performance, calculate costs, and optimize your application.
+
+All metrics are included in the **final response** when streaming, or in the single response object when streaming is disabled.
+
+## Metrics Structure
+
+From `api/types.go:570-577`, all generation responses include a `Metrics` struct:
+
+```go
+type Metrics struct {
+    TotalDuration      time.Duration `json:"total_duration,omitempty"`
+    LoadDuration       time.Duration `json:"load_duration,omitempty"`
+    PromptEvalCount    int           `json:"prompt_eval_count,omitempty"`
+    PromptEvalDuration time.Duration `json:"prompt_eval_duration,omitempty"`
+    EvalCount          int           `json:"eval_count,omitempty"`
+    EvalDuration       time.Duration `json:"eval_duration,omitempty"`
+}
+```
+
+## Available Metrics
+
+### Token Counts
+
+<ResponseField name="prompt_eval_count" type="integer">
+  Number of tokens in the input prompt
+</ResponseField>
+
+<ResponseField name="eval_count" type="integer">
+  Number of tokens generated in the response
+</ResponseField>
+
+### Duration Metrics
+
+<Note>
+All durations are in **nanoseconds** (ns). Divide by `1,000,000,000` to convert to seconds.
+</Note>
+
+<ResponseField name="total_duration" type="integer">
+  Total time for the entire request, including network overhead and all processing
+</ResponseField>
+
+<ResponseField name="load_duration" type="integer">
+  Time spent loading the model into memory. Will be low or zero if model is already loaded
+</ResponseField>
+
+<ResponseField name="prompt_eval_duration" type="integer">
+  Time spent processing (encoding) the input prompt
+</ResponseField>
+
+<ResponseField name="eval_duration" type="integer">
+  Time spent generating the response tokens
+</ResponseField>
+
+## Example Response
+
+### Generate Endpoint
+
+```json
+{
+  "model": "llama3.2",
+  "created_at": "2023-08-04T19:22:45.499127Z",
+  "response": "The sky is blue because of Rayleigh scattering...",
+  "done": true,
+  "done_reason": "stop",
+  "context": [1, 2, 3],
+  "total_duration": 10706818083,
+  "load_duration": 6338219291,
+  "prompt_eval_count": 26,
+  "prompt_eval_duration": 130079000,
+  "eval_count": 259,
+  "eval_duration": 4232710000
+}
+```
+
+### Chat Endpoint
+
+```json
+{
+  "model": "llama3.2",
+  "created_at": "2023-08-04T19:22:45.499127Z",
+  "message": {
+    "role": "assistant",
+    "content": "Hello! How can I help you today?"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 5191566416,
+  "load_duration": 2154458,
+  "prompt_eval_count": 26,
+  "prompt_eval_duration": 383809000,
+  "eval_count": 298,
+  "eval_duration": 4799921000
+}
+```
+
+### Embed Endpoint
+
+```json
+{
+  "model": "all-minilm",
+  "embeddings": [[0.010071029, -0.0017594862, ...]],
+  "total_duration": 14143917,
+  "load_duration": 1019500,
+  "prompt_eval_count": 8
+}
+```
+
+## Calculating Performance Metrics
+
+### Tokens per Second (Generation Speed)
+
+Calculate how fast the model generates tokens:
+
+```javascript
+function calculateTokensPerSecond(evalCount, evalDuration) {
+  return (evalCount / evalDuration) * 1e9;
+}
+
+// Example
+const tps = calculateTokensPerSecond(259, 4232710000);
+console.log(`${tps.toFixed(2)} tokens/second`); // 61.19 tokens/second
+```
+
+### Prompt Processing Speed
+
+Calculate how fast the prompt was processed:
+
+```javascript
+function calculatePromptSpeed(promptEvalCount, promptEvalDuration) {
+  return (promptEvalCount / promptEvalDuration) * 1e9;
+}
+
+// Example
+const promptTps = calculatePromptSpeed(26, 130079000);
+console.log(`${promptTps.toFixed(2)} tokens/second`); // 199.88 tokens/second
+```
+
+### Time Breakdown
+
+Visualize where time was spent:
+
+```javascript
+function analyzeTimings(metrics) {
+  const total = metrics.total_duration;
+  
+  return {
+    load: (metrics.load_duration / total * 100).toFixed(1) + '%',
+    promptEval: (metrics.prompt_eval_duration / total * 100).toFixed(1) + '%',
+    generation: (metrics.eval_duration / total * 100).toFixed(1) + '%',
+    overhead: ((total - metrics.load_duration - metrics.prompt_eval_duration - metrics.eval_duration) / total * 100).toFixed(1) + '%'
+  };
+}
+
+// Example output:
+// { load: '59.2%', promptEval: '1.2%', generation: '39.5%', overhead: '0.1%' }
+```
+
+## Monitoring and Logging
+
+### Go Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"time"
+	"github.com/ollama/ollama/api"
+)
+
+func main() {
+	client, _ := api.ClientFromEnvironment()
+	
+	req := &api.GenerateRequest{
+		Model:  "llama3.2",
+		Prompt: "Explain quantum computing",
+		Stream: new(bool), // false
+	}
+	
+	var finalResp api.GenerateResponse
+	err := client.Generate(context.Background(), req, func(resp api.GenerateResponse) error {
+		finalResp = resp
+		return nil
+	})
+	
+	if err == nil && finalResp.Done {
+		fmt.Printf("Metrics:\n")
+		fmt.Printf("  Prompt tokens: %d\n", finalResp.PromptEvalCount)
+		fmt.Printf("  Generated tokens: %d\n", finalResp.EvalCount)
+		fmt.Printf("  Total time: %.2fs\n", finalResp.TotalDuration.Seconds())
+		fmt.Printf("  Generation speed: %.2f t/s\n", 
+			float64(finalResp.EvalCount)/finalResp.EvalDuration.Seconds())
+	}
+}
+```
+
+### Python Example with Logging
+
+```python
+import requests
+import json
+import time
+
+class OllamaMetrics:
+    def __init__(self):
+        self.requests = []
+    
+    def track_request(self, model, prompt, metrics):
+        self.requests.append({
+            'timestamp': time.time(),
+            'model': model,
+            'prompt_length': len(prompt),
+            'prompt_tokens': metrics.get('prompt_eval_count', 0),
+            'generated_tokens': metrics.get('eval_count', 0),
+            'total_duration_ms': metrics.get('total_duration', 0) / 1e6,
+            'tokens_per_second': self._calculate_tps(metrics)
+        })
+    
+    def _calculate_tps(self, metrics):
+        eval_count = metrics.get('eval_count', 0)
+        eval_duration = metrics.get('eval_duration', 1)
+        return (eval_count / eval_duration) * 1e9
+    
+    def summary(self):
+        if not self.requests:
+            return "No requests tracked"
+        
+        total_tokens = sum(r['generated_tokens'] for r in self.requests)
+        avg_tps = sum(r['tokens_per_second'] for r in self.requests) / len(self.requests)
+        
+        return f"""
+        Total Requests: {len(self.requests)}
+        Total Tokens Generated: {total_tokens}
+        Average Speed: {avg_tps:.2f} tokens/second
+        """
+
+# Usage
+tracker = OllamaMetrics()
+
+response = requests.post('http://localhost:11434/api/generate', json={
+    'model': 'llama3.2',
+    'prompt': 'Why is the sky blue?',
+    'stream': False
+})
+
+data = response.json()
+if data.get('done'):
+    tracker.track_request('llama3.2', 'Why is the sky blue?', data)
+    print(tracker.summary())
+```
+
+## Context and Memory
+
+### Context Tokens
+
+The `context` field (deprecated but still available in `/api/generate`) returns token IDs that can be reused:
+
+```json
+{
+  "context": [128000, 9906, 0, 2650, 527, 499, 3432, 30]
+}
+```
+
+This allows maintaining conversation state without re-processing the entire history. However, it's recommended to use the `/api/chat` endpoint instead.
+
+## Usage-Based Cost Calculation
+
+If you're tracking costs per token:
+
+```javascript
+function calculateCost(metrics, costPerMillionTokens) {
+  const inputTokens = metrics.prompt_eval_count;
+  const outputTokens = metrics.eval_count;
+  const totalTokens = inputTokens + outputTokens;
+  
+  return (totalTokens / 1000000) * costPerMillionTokens;
+}
+
+// Example: $0.50 per million tokens
+const cost = calculateCost(
+  { prompt_eval_count: 26, eval_count: 259 },
+  0.50
+);
+console.log(`Cost: $${cost.toFixed(6)}`); // $0.000143
+```
+
+## Performance Optimization Tips
+
+<Tip>
+**High load_duration?** The model is being loaded from disk. Keep models loaded with `keep_alive` parameter.
+</Tip>
+
+<Tip>
+**Low tokens/second?** Check:
+- Model size vs. available VRAM
+- `num_gpu` parameter
+- Concurrent request load
+- Hardware specifications
+</Tip>
+
+### Keep Models Loaded
+
+Prevent model unloading to reduce `load_duration`:
+
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "llama3.2",
+  "prompt": "Hello",
+  "keep_alive": "10m"
+}'
+```
+
+### Batch Similar Requests
+
+Group requests to the same model to benefit from cached model weights.
+
+## Metrics Summary Output
+
+The Go client includes a helper method to print metrics (from `api/types.go:932-958`):
+
+```go
+func (m *Metrics) Summary() {
+    if m.TotalDuration > 0 {
+        fmt.Fprintf(os.Stderr, "total duration:       %v\n", m.TotalDuration)
+    }
+    if m.LoadDuration > 0 {
+        fmt.Fprintf(os.Stderr, "load duration:        %v\n", m.LoadDuration)
+    }
+    if m.PromptEvalCount > 0 {
+        fmt.Fprintf(os.Stderr, "prompt eval count:    %d token(s)\n", m.PromptEvalCount)
+    }
+    if m.PromptEvalDuration > 0 {
+        fmt.Fprintf(os.Stderr, "prompt eval duration: %s\n", m.PromptEvalDuration)
+        fmt.Fprintf(os.Stderr, "prompt eval rate:     %.2f tokens/s\n", 
+            float64(m.PromptEvalCount)/m.PromptEvalDuration.Seconds())
+    }
+    if m.EvalCount > 0 {
+        fmt.Fprintf(os.Stderr, "eval count:           %d token(s)\n", m.EvalCount)
+    }
+    if m.EvalDuration > 0 {
+        fmt.Fprintf(os.Stderr, "eval duration:        %s\n", m.EvalDuration)
+        fmt.Fprintf(os.Stderr, "eval rate:            %.2f tokens/s\n", 
+            float64(m.EvalCount)/m.EvalDuration.Seconds())
+    }
+}
+```
+
+Example output:
+```
+total duration:       10.706818083s
+load duration:        6.338219291s
+prompt eval count:    26 token(s)
+prompt eval duration: 130.079ms
+prompt eval rate:     199.88 tokens/s
+eval count:           259 token(s)
+eval duration:        4.23271s
+eval rate:            61.19 tokens/s
+```
+
+## Related Resources
+
+- [Streaming Responses](/api/streaming) - Understand how metrics are delivered
+- [Error Handling](/api/errors) - Handle errors when tracking metrics
+- [API Reference](/api/generate) - Full endpoint documentation

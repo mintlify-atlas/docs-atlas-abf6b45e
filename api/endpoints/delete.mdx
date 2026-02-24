@@ -1,0 +1,218 @@
+---
+title: 'DELETE /api/delete'
+description: 'Delete a model and its layers'
+---
+
+Delete a model from the local system. This removes the model manifest and associated layers if they are not referenced by other models.
+
+## Request
+
+### Endpoint
+
+```
+DELETE /api/delete
+```
+
+### Request Body
+
+<ParamField path="model" type="string" required>
+  Name of the model to delete
+</ParamField>
+
+## Response
+
+Returns HTTP status code 200 on success with no response body.
+
+## Examples
+
+<CodeGroup>
+
+```bash cURL
+curl -X DELETE http://localhost:11434/api/delete -d '{
+  "model": "llama3.2"
+}'
+```
+
+```python Python
+import requests
+
+response = requests.delete(
+    'http://localhost:11434/api/delete',
+    json={'model': 'llama3.2'}
+)
+
+if response.status_code == 200:
+    print("Model deleted successfully")
+else:
+    error = response.json()
+    print(f"Error: {error.get('error', 'Unknown error')}")
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:11434/api/delete', {
+  method: 'DELETE',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ model: 'llama3.2' })
+});
+
+if (response.ok) {
+  console.log('Model deleted successfully');
+} else {
+  const error = await response.json();
+  console.error(`Error: ${error.error}`);
+}
+```
+
+</CodeGroup>
+
+### Delete with Full Qualifier
+
+```bash
+curl -X DELETE http://localhost:11434/api/delete -d '{
+  "model": "registry.ollama.ai/library/llama3.2:latest"
+}'
+```
+
+### Safe Delete with Verification (Python)
+
+```python
+import requests
+
+def delete_model_safe(model_name):
+    # Check if model exists
+    models = requests.get('http://localhost:11434/api/tags').json()
+    model_names = [m['name'] for m in models['models']]
+    
+    if model_name not in model_names:
+        print(f"Model '{model_name}' not found")
+        return False
+    
+    # Confirm deletion
+    confirm = input(f"Delete '{model_name}'? (yes/no): ")
+    if confirm.lower() != 'yes':
+        print("Deletion cancelled")
+        return False
+    
+    # Delete
+    response = requests.delete(
+        'http://localhost:11434/api/delete',
+        json={'model': model_name}
+    )
+    
+    if response.status_code == 200:
+        print(f"Model '{model_name}' deleted successfully")
+        return True
+    else:
+        print(f"Error: {response.json()['error']}")
+        return False
+
+delete_model_safe('llama3.2')
+```
+
+### Bulk Delete (JavaScript)
+
+```javascript
+async function deleteModels(modelNames) {
+  const results = [];
+  
+  for (const model of modelNames) {
+    try {
+      const response = await fetch('http://localhost:11434/api/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model })
+      });
+      
+      if (response.ok) {
+        results.push({ model, success: true });
+        console.log(`✓ Deleted ${model}`);
+      } else {
+        const error = await response.json();
+        results.push({ model, success: false, error: error.error });
+        console.error(`✗ Failed to delete ${model}: ${error.error}`);
+      }
+    } catch (err) {
+      results.push({ model, success: false, error: err.message });
+      console.error(`✗ Error deleting ${model}: ${err.message}`);
+    }
+  }
+  
+  return results;
+}
+
+// Delete multiple models
+const toDelete = ['old-model-1', 'old-model-2', 'test-model'];
+const results = await deleteModels(toDelete);
+
+console.log(`\nDeleted ${results.filter(r => r.success).length} of ${results.length} models`);
+```
+
+## Error Responses
+
+<ResponseField name="error" type="string">
+  Description of the error
+</ResponseField>
+
+### Common Errors
+
+- **400 Bad Request**: Invalid model name format
+- **404 Not Found**: Model not found
+- **500 Internal Server Error**: Error deleting model or layers
+
+### Example Error Response
+
+```json
+{
+  "error": "model 'nonexistent-model' not found"
+}
+```
+
+## Cleanup Script Example
+
+```python
+import requests
+from datetime import datetime, timedelta
+
+def cleanup_old_models(days_old=30):
+    """Delete models older than specified days"""
+    response = requests.get('http://localhost:11434/api/tags')
+    models = response.json()['models']
+    
+    cutoff_date = datetime.now() - timedelta(days=days_old)
+    deleted_count = 0
+    
+    for model in models:
+        modified_date = datetime.fromisoformat(
+            model['modified_at'].replace('Z', '+00:00')
+        )
+        
+        if modified_date < cutoff_date:
+            print(f"Deleting old model: {model['name']}")
+            response = requests.delete(
+                'http://localhost:11434/api/delete',
+                json={'model': model['name']}
+            )
+            
+            if response.status_code == 200:
+                deleted_count += 1
+                size_gb = model['size'] / (1024 ** 3)
+                print(f"  ✓ Freed {size_gb:.2f} GB")
+            else:
+                print(f"  ✗ Error: {response.json()['error']}")
+    
+    print(f"\nDeleted {deleted_count} old models")
+
+cleanup_old_models(days_old=30)
+```
+
+<Note>
+Deleting a model removes its manifest immediately. Model layers (files) are only removed if they are not referenced by any other models on the system.
+</Note>
+
+<Note>
+There is no undo operation. Deleted models must be re-pulled or re-created. Consider using `/api/copy` to create backups before deletion.
+</Note>
+
+<Warning>
+Deletion is permanent and immediate. The operation does not prompt for confirmation.
+</Warning>

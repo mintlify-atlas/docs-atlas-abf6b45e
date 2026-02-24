@@ -1,0 +1,370 @@
+---
+title: 'ollama show'
+description: 'Display detailed information about a model'
+icon: 'eye'
+---
+
+## Synopsis
+
+```bash
+ollama show MODEL
+ollama show MODEL [OPTIONS]
+```
+
+## Description
+
+The `show` command displays detailed information about a model, including:
+- Architecture and parameters
+- Modelfile configuration
+- System prompt and template
+- License information
+- Model capabilities
+- Quantization details
+
+## Arguments
+
+<ParamField path="MODEL" type="string" required>
+  Name of the model to inspect
+  
+  Examples:
+  - `llama3.2`
+  - `mistral:7b-instruct`
+  - `myusername/custom-model`
+</ParamField>
+
+## Options
+
+<ParamField path="--license" type="boolean" default="false">
+  Display only the model's license
+  
+  ```bash
+  ollama show llama3.2 --license
+  ```
+</ParamField>
+
+<ParamField path="--modelfile" type="boolean" default="false">
+  Display only the Modelfile used to create this model
+  
+  ```bash
+  ollama show llama3.2 --modelfile
+  ```
+</ParamField>
+
+<ParamField path="--parameters" type="boolean" default="false">
+  Display only the model parameters
+  
+  ```bash
+  ollama show llama3.2 --parameters
+  ```
+</ParamField>
+
+<ParamField path="--template" type="boolean" default="false">
+  Display only the prompt template
+  
+  ```bash
+  ollama show llama3.2 --template
+  ```
+</ParamField>
+
+<ParamField path="--system" type="boolean" default="false">
+  Display only the system message
+  
+  ```bash
+  ollama show llama3.2 --system
+  ```
+</ParamField>
+
+<ParamField path="--verbose" type="boolean" default="false">
+  Short: `-v`
+  
+  Show detailed model information including metadata and tensor details
+  
+  ```bash
+  ollama show llama3.2 --verbose
+  ```
+</ParamField>
+
+<Note>
+Only one display option (`--license`, `--modelfile`, etc.) can be used at a time.
+</Note>
+
+## Examples
+
+### Basic Information
+
+Display all model information:
+
+```bash
+ollama show llama3.2
+```
+
+Output:
+```
+  Model
+
+     architecture    llama
+     parameters      3B
+     context length  2048
+     quantization    Q4_K_M
+
+  Capabilities
+
+     completion
+     chat
+
+  Parameters
+
+     temperature     0.7
+     top_p          0.9
+     top_k          40
+
+  System
+
+     You are a helpful assistant.
+```
+
+### View Modelfile
+
+See the Modelfile used to create the model:
+
+```bash
+ollama show llama3.2 --modelfile
+```
+
+Output:
+```dockerfile
+FROM llama3.2:latest
+
+SYSTEM You are a helpful assistant.
+
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+```
+
+### View Parameters Only
+
+Display just the parameters:
+
+```bash
+ollama show llama3.2 --parameters
+```
+
+Output:
+```
+temperature 0.7
+top_p 0.9
+top_k 40
+repeat_penalty 1.1
+```
+
+### View System Prompt
+
+See the system message:
+
+```bash
+ollama show llama3.2 --system
+```
+
+Output:
+```
+You are a helpful assistant.
+```
+
+### View Template
+
+Display the prompt template:
+
+```bash
+ollama show llama3.2 --template
+```
+
+Output:
+```
+{{ .System }}
+
+User: {{ .Prompt }}
+Assistant:
+```
+
+### View License
+
+Display license information:
+
+```bash
+ollama show llama3.2 --license
+```
+
+### Verbose Output
+
+Get detailed metadata and tensor information:
+
+```bash
+ollama show llama3.2 --verbose
+```
+
+Output includes:
+```
+  Model
+
+     architecture       llama
+     parameters         3B
+     context length     2048
+     embedding length   4096
+     quantization       Q4_K_M
+
+  Capabilities
+
+     completion
+     chat
+
+  Metadata
+
+     general.architecture           llama
+     general.parameter_count        3000000000
+     llama.context_length           2048
+     llama.embedding_length         4096
+     llama.attention.head_count     32
+     ...
+
+  Tensors
+
+     token_embd.weight           F16    [4096, 32000]
+     blk.0.attn_q.weight        Q4_K   [4096, 4096]
+     ...
+```
+
+## Output Sections
+
+### Model Information
+
+Basic model details:
+- **Architecture**: Model architecture (llama, mistral, etc.)
+- **Parameters**: Number of parameters (3B, 7B, 13B, etc.)
+- **Context length**: Maximum context window size
+- **Quantization**: Quantization level applied
+- **Remote model**: If this is a cloud model, shows remote details
+
+### Capabilities
+
+What the model can do:
+- `completion` - Text completion
+- `chat` - Conversational chat
+- `embedding` - Generate embeddings
+- `vision` - Process images (multimodal)
+- `thinking` - Reasoning/thinking output
+- `image` - Generate images
+
+### Parameters
+
+Model runtime parameters:
+- `temperature` - Randomness in generation
+- `top_p` - Nucleus sampling threshold
+- `top_k` - Top-k sampling value
+- `repeat_penalty` - Penalty for repetition
+- `num_ctx` - Context window size
+- And more...
+
+### System
+
+The system prompt that defines the model's behavior.
+
+### Template
+
+The chat template used to format prompts.
+
+### License
+
+Licensing information for the model.
+
+## Scripting Usage
+
+Extract specific information for scripts:
+
+```bash
+# Get only parameters
+OLLAMA_TEMP=$(ollama show llama3.2 --parameters | grep temperature | awk '{print $2}')
+
+# Get Modelfile
+ollama show mymodel --modelfile > Modelfile.backup
+
+# Check if model has vision capability
+if ollama show llama3.2 | grep -q "vision"; then
+    echo "Model supports vision"
+fi
+```
+
+## Comparing Models
+
+Compare two models side-by-side:
+
+```bash
+# Compare parameters
+diff <(ollama show llama3.2 --parameters) <(ollama show mistral --parameters)
+
+# Compare Modelfiles
+diff <(ollama show model1 --modelfile) <(ollama show model2 --modelfile)
+```
+
+## Environment Variables
+
+<ParamField path="OLLAMA_HOST" type="string" default="http://127.0.0.1:11434">
+  Ollama server address
+</ParamField>
+
+## Exit Codes
+
+- `0` - Success
+- `1` - Error (model not found, server not running, etc.)
+
+## Troubleshooting
+
+### Model Not Found
+
+```
+Error: model 'mymodel' not found
+```
+
+**Solution**: Check the model name and list available models:
+
+```bash
+ollama list
+```
+
+### Server Not Running
+
+```
+Error: could not connect to ollama server
+```
+
+**Solution**: Start the Ollama server:
+
+```bash
+ollama serve
+```
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Verify Model" icon="check">
+    Confirm a model was created correctly with the right parameters
+  </Card>
+  
+  <Card title="Debug Issues" icon="bug">
+    Troubleshoot model behavior by inspecting configuration
+  </Card>
+  
+  <Card title="Clone Models" icon="copy">
+    Extract Modelfile to recreate or modify a model
+  </Card>
+  
+  <Card title="Documentation" icon="book">
+    Generate documentation about your model's configuration
+  </Card>
+</CardGroup>
+
+## Related Commands
+
+- [`ollama list`](/cli/list) - List all available models
+- [`ollama create`](/cli/create) - Create a model with specific configuration
+- [`ollama run`](/cli/run) - Run a model after inspecting it
+- [`ollama pull`](/cli/pull) - Pull a model to inspect

@@ -1,0 +1,341 @@
+---
+title: OpenClaw
+description: Personal AI assistant that bridges messaging apps to local and cloud models
+icon: message
+---
+
+OpenClaw is a personal AI assistant that runs on your own devices. It bridges messaging services like WhatsApp, Telegram, Slack, Discord, and iMessage to AI models through a centralized gateway.
+
+<Note>
+  Previously known as Clawdbot. The alias `ollama launch clawdbot` still works.
+</Note>
+
+## Quick Start
+
+```bash
+ollama launch openclaw
+```
+
+Ollama handles everything automatically:
+
+<Steps>
+  <Step title="Installation">
+    If OpenClaw isn't installed, Ollama prompts to install it via npm
+  </Step>
+  <Step title="Security Notice">
+    On first launch, a security notice explains the risks of tool access
+  </Step>
+  <Step title="Model Selection">
+    Pick a model from the interactive selector (local or cloud)
+  </Step>
+  <Step title="Onboarding">
+    Ollama configures the provider, installs the gateway daemon, and sets your model as primary
+  </Step>
+  <Step title="Launch">
+    The gateway starts in the background and the OpenClaw TUI opens
+  </Step>
+</Steps>
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="100+ Skills" icon="puzzle-piece">
+    Built-in skills for file management, web search, code execution, and more
+  </Card>
+  <Card title="Multi-Platform" icon="globe">
+    Connect WhatsApp, Telegram, Slack, Discord, iMessage, and other messaging apps
+  </Card>
+  <Card title="Local Gateway" icon="shield">
+    Runs a secure gateway on your machine for private AI conversations
+  </Card>
+  <Card title="Plugin System" icon="plug">
+    Extensible with custom plugins and skills
+  </Card>
+</CardGroup>
+
+## Configuration
+
+### Change Model Without Launching
+
+```bash
+ollama launch openclaw --config
+```
+
+### Use a Specific Model
+
+```bash
+ollama launch openclaw --model kimi-k2.5:cloud
+```
+
+If the gateway is already running, it restarts automatically to pick up the new model.
+
+### Pass Custom Arguments
+
+```bash
+ollama launch openclaw -- gateway run --port 8080
+```
+
+Arguments after `--` are passed directly to the openclaw binary.
+
+## Recommended Models
+
+<Warning>
+  OpenClaw requires a **large context window** (at least 64k tokens) to handle complex tool calling and multi-turn conversations.
+</Warning>
+
+### Cloud Models
+
+<CardGroup cols={2}>
+  <Card title="kimi-k2.5:cloud">
+    Multimodal reasoning with subagents (260k context)
+  </Card>
+  <Card title="minimax-m2.5:cloud">
+    Fast, efficient coding and productivity (200k context)
+  </Card>
+  <Card title="glm-5:cloud">
+    Reasoning and code generation (200k context)
+  </Card>
+</CardGroup>
+
+More cloud models at [ollama.com/search?c=cloud](https://ollama.com/search?c=cloud).
+
+### Local Models
+
+<Card title="glm-4.7-flash">
+  Reasoning and code generation locally (~25 GB VRAM)
+</Card>
+
+See [Context Length](/context-length) for configuration.
+
+## Connect Messaging Apps
+
+After launching OpenClaw, connect your messaging platforms:
+
+```bash
+openclaw configure --section channels
+```
+
+This opens an interactive wizard to link:
+
+- WhatsApp
+- Telegram
+- Slack
+- Discord
+- iMessage (macOS only)
+- SMS (with supported providers)
+
+## Security Considerations
+
+<Warning>
+  OpenClaw can read files and execute commands when tools are enabled. A malicious prompt could potentially cause it to perform unsafe actions.
+</Warning>
+
+On first launch, Ollama displays a security notice. OpenClaw:
+
+- Has access to files in your home directory
+- Can execute shell commands when tools are enabled
+- Runs a local gateway that accepts connections from configured messaging apps
+- Stores configuration and credentials locally
+
+Learn more: [OpenClaw Security Documentation](https://docs.openclaw.ai/gateway/security)
+
+## Gateway Management
+
+The OpenClaw gateway runs in the background to handle requests from messaging apps.
+
+### Check Status
+
+```bash
+openclaw gateway status
+```
+
+### Stop the Gateway
+
+```bash
+openclaw gateway stop
+```
+
+### Restart the Gateway
+
+```bash
+openclaw gateway restart
+```
+
+### View Logs
+
+```bash
+openclaw gateway logs
+```
+
+## Skills and Plugins
+
+### Browse Available Skills
+
+```bash
+openclaw skills
+```
+
+### Install a Skill
+
+```bash
+openclaw skills install <skill-name>
+```
+
+### Web Search Plugin
+
+When using cloud models, Ollama automatically installs the web search plugin for enhanced capabilities:
+
+- Real-time web searches
+- News and information retrieval
+- Fact-checking and verification
+
+## Configuration Files
+
+OpenClaw stores its configuration in `~/.openclaw/openclaw.json`.
+
+<Accordion title="Example Configuration">
+```json
+{
+  "models": {
+    "providers": {
+      "ollama": {
+        "baseUrl": "http://localhost:11434/v1",
+        "apiKey": "ollama-local",
+        "api": "ollama",
+        "models": [
+          {
+            "id": "kimi-k2.5:cloud",
+            "name": "kimi-k2.5:cloud",
+            "input": ["text", "image"],
+            "reasoning": true,
+            "contextWindow": 262144,
+            "maxTokens": 262144,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            }
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "ollama/kimi-k2.5:cloud"
+      }
+    }
+  },
+  "gateway": {
+    "port": 18789,
+    "auth": {
+      "token": "your-token-here"
+    }
+  }
+}
+```
+</Accordion>
+
+Ollama automatically manages this file when you use `ollama launch openclaw`.
+
+## Web UI
+
+OpenClaw includes a web interface for managing conversations and settings:
+
+```
+http://localhost:18789
+```
+
+The URL includes your auth token automatically when launched via `ollama launch`.
+
+## Troubleshooting
+
+### OpenClaw Won't Install
+
+OpenClaw requires Node.js and npm:
+
+1. Install Node.js from [nodejs.org](https://nodejs.org/)
+2. Verify installation: `npm --version`
+3. Rerun: `ollama launch openclaw`
+
+### Gateway Won't Start
+
+Check if the port is already in use:
+
+```bash
+lsof -i :18789  # macOS/Linux
+netstat -ano | findstr :18789  # Windows
+```
+
+### Model Not Found
+
+Ensure the model is pulled:
+
+```bash
+ollama pull kimi-k2.5:cloud
+ollama list
+```
+
+### Windows Support
+
+OpenClaw works best on WSL2 (Windows Subsystem for Linux):
+
+```powershell
+wsl --install
+```
+
+See: [OpenClaw Windows Guide](https://docs.openclaw.ai/windows)
+
+## Advanced Usage
+
+### Custom Gateway Port
+
+Edit `~/.openclaw/openclaw.json` to change the gateway port:
+
+```json
+{
+  "gateway": {
+    "port": 8080
+  }
+}
+```
+
+### Multiple Models
+
+Configure different models for different use cases:
+
+```bash
+ollama launch openclaw --model qwen3:8b
+```
+
+The most recently selected model becomes the primary.
+
+### Direct CLI Usage
+
+Bypass the launcher for advanced control:
+
+```bash
+export OLLAMA_HOST=http://localhost:11434
+openclaw onboard --non-interactive
+openclaw gateway run
+openclaw tui
+```
+
+## Learn More
+
+<CardGroup cols={2}>
+  <Card title="Official Docs" icon="book" href="https://docs.openclaw.ai">
+    Complete OpenClaw documentation
+  </Card>
+  <Card title="npm Package" icon="npm" href="https://www.npmjs.com/package/openclaw">
+    OpenClaw on npm
+  </Card>
+  <Card title="Skills" icon="puzzle-piece" href="https://docs.openclaw.ai/skills">
+    Browse available skills
+  </Card>
+  <Card title="Security" icon="shield" href="https://docs.openclaw.ai/gateway/security">
+    Security best practices
+  </Card>
+</CardGroup>

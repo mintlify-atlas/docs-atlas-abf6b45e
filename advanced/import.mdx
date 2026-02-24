@@ -1,0 +1,270 @@
+---
+title: Importing Models
+description: Import models from Safetensors, GGUF, and fine-tuned adapters into Ollama
+---
+
+Ollama supports importing models and adapters from various formats, allowing you to use custom fine-tuned models or convert models from other frameworks.
+
+## Supported Formats
+
+Ollama can import:
+- **Safetensors models** - Full models in Safetensors format
+- **Safetensors adapters** - Fine-tuned LoRA adapters
+- **GGUF files** - Pre-quantized models and adapters from llama.cpp
+
+## Supported Architectures
+
+Ollama supports importing models based on several architectures:
+
+<CardGroup cols={2}>
+  <Card title="Llama" icon="llama">
+    Llama 2, Llama 3, Llama 3.1, Llama 3.2, and Llama 4
+  </Card>
+  <Card title="Mistral" icon="sparkles">
+    Mistral 1, Mistral 2, Mistral 3, and Mixtral
+  </Card>
+  <Card title="Gemma" icon="gem">
+    Gemma 1, Gemma 2, and Gemma 3
+  </Card>
+  <Card title="Other" icon="cube">
+    Phi3, Qwen2, Qwen3, Command R, and more
+  </Card>
+</CardGroup>
+
+## Importing Safetensors Models
+
+Import full models from Safetensors weights into Ollama.
+
+<Steps>
+  <Step title="Create a Modelfile">
+    Create a `Modelfile` pointing to your Safetensors directory:
+
+    ```dockerfile
+    FROM /path/to/safetensors/directory
+    ```
+
+    If the Modelfile is in the same directory as the weights:
+
+    ```dockerfile
+    FROM .
+    ```
+  </Step>
+
+  <Step title="Create the model">
+    Run `ollama create` from the directory containing your Modelfile:
+
+    ```bash
+    ollama create my-model
+    ```
+  </Step>
+
+  <Step title="Test the model">
+    Verify the model works:
+
+    ```bash
+    ollama run my-model
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  This method works for foundation models and fine-tuned models that have been **fused** with a foundation model.
+</Note>
+
+## Importing Fine-Tuned Adapters
+
+Import LoRA adapters created through fine-tuning frameworks.
+
+<Steps>
+  <Step title="Create a Modelfile with adapter">
+    Specify the base model and adapter path:
+
+    ```dockerfile
+    FROM <base model name>
+    ADAPTER /path/to/safetensors/adapter/directory
+    ```
+
+    If your adapter is in the same directory:
+
+    ```dockerfile
+    FROM llama3.2
+    ADAPTER .
+    ```
+  </Step>
+
+  <Step title="Create the model">
+    ```bash
+    ollama create my-finetuned-model
+    ```
+  </Step>
+
+  <Step title="Run the model">
+    ```bash
+    ollama run my-finetuned-model
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  Use the **same base model** in the `FROM` command that was used to create the adapter. Mismatched base models will produce erratic results.
+</Warning>
+
+### Supported Fine-Tuning Frameworks
+
+Create Safetensors adapters with these frameworks:
+
+- [Hugging Face Transformers](https://huggingface.co/docs/transformers/en/training)
+- [Unsloth](https://github.com/unslothai/unsloth)
+- [MLX](https://github.com/ml-explore/mlx)
+
+<Tip>
+  Use non-quantized (non-QLoRA) adapters for best results, as different frameworks use different quantization methods.
+</Tip>
+
+## Importing GGUF Models
+
+Import pre-quantized GGUF models or adapters from llama.cpp or Hugging Face.
+
+### GGUF Model
+
+Create a Modelfile pointing to the GGUF file:
+
+```dockerfile
+FROM /path/to/model.gguf
+```
+
+Then create the model:
+
+```bash
+ollama create my-gguf-model
+```
+
+### GGUF Adapter
+
+For GGUF adapters, specify both the base model and adapter:
+
+```dockerfile
+FROM <model name>
+ADAPTER /path/to/adapter.gguf
+```
+
+The base model can be:
+- An Ollama model (e.g., `llama3.2`)
+- A GGUF file
+- A Safetensors model
+
+<Info>
+  When importing GGUF adapters, ensure the base model matches the one used to create the adapter.
+</Info>
+
+### Converting to GGUF
+
+You can convert models to GGUF format using llama.cpp tools:
+
+- **Models**: Use `convert_hf_to_gguf.py` from llama.cpp
+- **Adapters**: Use `convert_lora_to_gguf.py` from llama.cpp
+
+## Quantizing During Import
+
+Quantize FP16 or FP32 models during import to reduce memory usage and increase performance.
+
+<Steps>
+  <Step title="Create a Modelfile with FP16/FP32 model">
+    ```dockerfile
+    FROM /path/to/my/model/fp16
+    ```
+  </Step>
+
+  <Step title="Create with quantization">
+    Use the `--quantize` or `-q` flag:
+
+    ```bash
+    ollama create --quantize q4_K_M mymodel
+    ```
+  </Step>
+</Steps>
+
+### Supported Quantization Levels
+
+<ParamField path="q4_K_M" type="string">
+  4-bit K-means quantization (medium) - Recommended balance of size and quality
+</ParamField>
+
+<ParamField path="q4_K_S" type="string">
+  4-bit K-means quantization (small) - Smaller size, lower quality
+</ParamField>
+
+<ParamField path="q8_0" type="string">
+  8-bit quantization - Higher quality, larger size
+</ParamField>
+
+<Note>
+  See the [Model Quantization](/advanced/model-quantization) page for detailed information about quantization levels and performance trade-offs.
+</Note>
+
+## Sharing Models
+
+After creating your model, share it on [ollama.com](https://ollama.com) so others can use it.
+
+<Steps>
+  <Step title="Create an account">
+    Visit [ollama.com/signup](https://ollama.com/signup) to create an account. Your username will be part of your model's name (e.g., `username/modelname`).
+  </Step>
+
+  <Step title="Add your public key">
+    Go to [Ollama Keys Settings](https://ollama.com/settings/keys) and add your Ollama public key. The page will show you where to find your public key on your system.
+  </Step>
+
+  <Step title="Copy and push your model">
+    Rename your model to include your username:
+
+    ```bash
+    ollama cp mymodel myusername/mymodel
+    ollama push myusername/mymodel
+    ```
+  </Step>
+</Steps>
+
+Once pushed, others can use your model:
+
+```bash
+ollama run myusername/mymodel
+```
+
+## Examples
+
+### Import a Hugging Face Model
+
+```bash
+# Download a model from Hugging Face
+huggingface-cli download username/model-name --local-dir ./model
+
+# Create Modelfile
+echo "FROM ./model" > Modelfile
+
+# Import to Ollama
+ollama create hf-model
+```
+
+### Import with Custom Parameters
+
+```dockerfile
+FROM ./llama-model
+TEMPLATE """{{- if .System }}<|system|>{{ .System }}<|end|>{{- end }}
+{{- if .Prompt }}<|user|>{{ .Prompt }}<|end|>{{- end }}
+<|assistant|>"""
+PARAMETER temperature 0.8
+PARAMETER top_p 0.9
+```
+
+### Import a Fine-Tuned Adapter
+
+```dockerfile
+FROM llama3.2
+ADAPTER ./my-finetuned-adapter
+SYSTEM "You are a helpful coding assistant specialized in Python."
+```
+
+<Check>
+  Your imported model is ready to use with `ollama run`, the API, or any Ollama client library!
+</Check>

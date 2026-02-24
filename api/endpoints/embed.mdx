@@ -1,0 +1,242 @@
+---
+title: 'POST /api/embed'
+description: 'Generate embeddings for text input'
+---
+
+Generate embeddings from a model for one or more input strings. This endpoint supports batch embedding generation and optional dimensionality reduction.
+
+## Request
+
+### Endpoint
+
+```
+POST /api/embed
+```
+
+### Request Body
+
+<ParamField path="model" type="string" required>
+  Model name to use for embedding generation (e.g., `nomic-embed-text`, `mxbai-embed-large`)
+</ParamField>
+
+<ParamField path="input" type="string | array" required>
+  Text input to generate embeddings for. Can be a single string or array of strings.
+</ParamField>
+
+<ParamField path="keep_alive" type="string | number" default="5m">
+  Duration to keep model loaded in memory (e.g., `"5m"`, `"1h"`, `-1` for indefinite)
+</ParamField>
+
+<ParamField path="truncate" type="boolean" default="true">
+  Truncate input to fit the model's maximum sequence length
+</ParamField>
+
+<ParamField path="dimensions" type="integer">
+  Truncate output embeddings to specified dimensions (must be less than model's default)
+</ParamField>
+
+<ParamField path="options" type="object">
+  Model-specific options for embedding generation
+</ParamField>
+
+## Response
+
+### Response Fields
+
+<ResponseField name="model" type="string">
+  The model used for embedding generation
+</ResponseField>
+
+<ResponseField name="embeddings" type="array">
+  Array of embedding vectors. Each embedding is an array of floating-point numbers.
+</ResponseField>
+
+<ResponseField name="total_duration" type="integer">
+  Total time in nanoseconds
+</ResponseField>
+
+<ResponseField name="load_duration" type="integer">
+  Time spent loading the model in nanoseconds
+</ResponseField>
+
+<ResponseField name="prompt_eval_count" type="integer">
+  Total number of tokens processed across all inputs
+</ResponseField>
+
+## Examples
+
+### Single String Embedding
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:11434/api/embed -d '{
+  "model": "nomic-embed-text",
+  "input": "The quick brown fox jumps over the lazy dog"
+}'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:11434/api/embed',
+    json={
+        'model': 'nomic-embed-text',
+        'input': 'The quick brown fox jumps over the lazy dog'
+    }
+)
+
+result = response.json()
+embedding = result['embeddings'][0]
+print(f"Embedding dimension: {len(embedding)}")
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:11434/api/embed', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'nomic-embed-text',
+    input: 'The quick brown fox jumps over the lazy dog'
+  })
+});
+
+const data = await response.json();
+const embedding = data.embeddings[0];
+console.log(`Embedding dimension: ${embedding.length}`);
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "model": "nomic-embed-text",
+  "embeddings": [
+    [
+      0.5670403838157654,
+      0.009260174818336964,
+      -0.4829583466053009,
+      ...
+    ]
+  ],
+  "total_duration": 123456789,
+  "load_duration": 12345678,
+  "prompt_eval_count": 10
+}
+```
+
+### Batch Embedding
+
+<CodeGroup>
+
+```bash cURL
+curl http://localhost:11434/api/embed -d '{
+  "model": "nomic-embed-text",
+  "input": [
+    "The sky is blue",
+    "The grass is green",
+    "The sun is yellow"
+  ]
+}'
+```
+
+```python Python
+import requests
+import numpy as np
+
+response = requests.post(
+    'http://localhost:11434/api/embed',
+    json={
+        'model': 'nomic-embed-text',
+        'input': [
+            'The sky is blue',
+            'The grass is green',
+            'The sun is yellow'
+        ]
+    }
+)
+
+result = response.json()
+embeddings = np.array(result['embeddings'])
+print(f"Generated {embeddings.shape[0]} embeddings")
+print(f"Each embedding has {embeddings.shape[1]} dimensions")
+
+# Calculate similarity between first two embeddings
+similarity = np.dot(embeddings[0], embeddings[1])
+print(f"Similarity: {similarity}")
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:11434/api/embed', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'nomic-embed-text',
+    input: [
+      'The sky is blue',
+      'The grass is green',
+      'The sun is yellow'
+    ]
+  })
+});
+
+const data = await response.json();
+console.log(`Generated ${data.embeddings.length} embeddings`);
+console.log(`Each embedding has ${data.embeddings[0].length} dimensions`);
+
+// Calculate cosine similarity
+function cosineSimilarity(a, b) {
+  const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
+  const magA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
+  const magB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
+  return dotProduct / (magA * magB);
+}
+
+const similarity = cosineSimilarity(data.embeddings[0], data.embeddings[1]);
+console.log(`Similarity: ${similarity}`);
+```
+
+</CodeGroup>
+
+### Dimensionality Reduction
+
+```bash
+curl http://localhost:11434/api/embed -d '{
+  "model": "nomic-embed-text",
+  "input": "Sample text",
+  "dimensions": 128
+}'
+```
+
+### Truncation Control
+
+```bash
+curl http://localhost:11434/api/embed -d '{
+  "model": "nomic-embed-text",
+  "input": "Very long text that exceeds model context...",
+  "truncate": false
+}'
+```
+
+## Error Responses
+
+<ResponseField name="error" type="string">
+  Description of the error
+</ResponseField>
+
+### Common Errors
+
+- **400 Bad Request**: Invalid input type or empty input
+- **404 Not Found**: Model not found
+- **500 Internal Server Error**: Embedding generation error
+
+<Note>
+Embeddings are automatically normalized to unit length. If you specify `dimensions`, the output is truncated and then re-normalized.
+</Note>
+
+<Note>
+To preload a model without generating embeddings, send an empty array or empty string as input.
+</Note>
